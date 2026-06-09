@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="robots" content="noindex, nofollow">
+<title>使用條款與內容聲明・對戲</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;600&family=Noto+Sans+TC:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#17121a; --bg-2:#1f1820; --surface:#261d28; --border:#3a2e3c; --border-soft:#2c2230;
+  --text:#ece2e6; --text-dim:#a394a0; --text-faint:#73656f;
+  --accent:#d8a657; --accent-soft:#ecca8c; --rose:#cf929b; --rose-deep:#b9737d;
+  --serif:"Noto Serif TC","Songti TC","Source Han Serif TC","PMingLiU",serif;
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;font-family:var(--sans);color:var(--text);line-height:1.9;
+  background:
+    radial-gradient(ellipse 80% 46% at 50% -8%, rgba(216,166,87,.10), transparent 62%),
+    radial-gradient(ellipse 64% 40% at 84% 2%, rgba(207,146,155,.06), transparent 60%),
+    var(--bg);
+  background-attachment:fixed;-webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:680px;margin:0 auto;padding:48px clamp(20px,5vw,28px) 80px;}
+.top{display:flex;align-items:center;gap:11px;margin-bottom:34px;}
+.mark{width:9px;height:9px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--accent-soft),var(--rose-deep));box-shadow:0 0 14px rgba(216,166,87,.45);}
+.top .brand{font-family:var(--serif);font-size:1.02rem;letter-spacing:.05em;}
+.top .back{margin-left:auto;font-size:.84rem;color:var(--text-dim);text-decoration:none;border:1px solid var(--border);padding:6px 13px;border-radius:9px;transition:border-color .16s,color .16s;}
+.top .back:hover{border-color:var(--accent);color:var(--text);}
+h1{font-family:var(--serif);font-weight:500;font-size:1.7rem;letter-spacing:.03em;margin:0 0 6px;}
+.updated{color:var(--text-faint);font-size:.82rem;margin-bottom:14px;}
+.lead{color:var(--text-dim);font-size:.96rem;border-left:2px solid var(--rose-deep);padding-left:16px;margin:22px 0 8px;}
+h2{font-family:var(--serif);font-weight:500;font-size:1.16rem;color:var(--accent-soft);margin:38px 0 10px;letter-spacing:.02em;}
+p{font-size:.95rem;color:var(--text);margin:0 0 12px;}
+.dim{color:var(--text-dim);}
+a.inline{color:var(--rose);}
+hr{border:none;border-top:1px solid var(--border-soft);margin:40px 0;}
+.foot{color:var(--text-faint);font-size:.82rem;line-height:1.8;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <span class="mark"></span>
+    <span class="brand">對戲</span>
+    <a class="back" href="index.html">返回網站</a>
+  </div>
+
+  <h1>使用條款與內容聲明</h1>
+  <div class="updated">最後更新：2026 年 6 月</div>
+
+  <p class="lead">本網站是一個個人、非商業性質的 AI 輔助創作（角色扮演）工具。進入或使用本網站，即表示你已閱讀並同意以下條款。</p>
+
+  <h2>一、內容性質</h2>
+  <p>本網站提供的故事與對話屬於<strong>成人向的虛構創作</strong>（包含戀愛、角色扮演等題材）。所有角色、情節與對白皆為虛構，與任何真實人物、事件無關，亦不代表本網站的任何立場或主張。</p>
+
+  <h2>二、年齡限制</h2>
+  <p>本網站<strong>僅供已滿 18 歲、或已達所在地區法定成年年齡的成年人使用</strong>。未成年人請勿瀏覽或使用。進入前的確認頁僅為基本提示，使用者應對自己是否符合年齡資格負責。</p>
+
+  <h2>三、AI 生成內容免責</h2>
+  <p>本網站的對話內容是透過第三方 AI 模型（Google Gemini）即時生成。生成結果可能不準確、不完整、或不符合預期，<span class="dim">不構成任何建議，亦不代表本網站的觀點</span>。本網站對 AI 生成內容的正確性、適切性與後果不承擔責任。</p>
+
+  <h2>四、使用者責任</h2>
+  <p>使用者須對自己輸入的提示，以及由此產生的內容負完全責任，並應遵守所在地區的相關法律與規範，不得將本工具用於任何違法用途。</p>
+
+  <h2>五、第三方服務</h2>
+  <p>使用本網站需自備你個人的 Google Gemini API 金鑰。你與 Google 之間的使用關係受 Google 的服務條款與政策約束，與本網站無關。</p>
+
+  <h2>六、隱私</h2>
+  <p>本網站為純前端靜態網頁。你的 API 金鑰與對話內容<strong>僅儲存在你自己的瀏覽器本機（localStorage）</strong>，不會上傳到本網站或任何伺服器；唯一的外部傳輸，是你的輸入會直接送往 Google Gemini API 以生成回覆。清除瀏覽器資料即可刪除這些本機紀錄。</p>
+
+  <h2>七、無擔保</h2>
+  <p>本網站按「現狀」提供，不提供任何明示或默示的擔保。對於使用或無法使用本網站所造成的任何直接或間接損失，本網站在法律允許的範圍內不負任何責任。</p>
+
+  <h2>八、條款變更</h2>
+  <p>本網站得隨時修改本條款，修改後的內容於本頁公布時即生效。請定期查閱。</p>
+
+  <hr>
+  <p class="foot">本文件為一般性聲明範本，非法律意見。若你的使用涉及實際法律責任或營運需求，建議另行諮詢專業人士。<br><a class="inline" href="index.html">← 返回網站</a></p>
+
+</div>
+</body>
+</html>

@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
+<meta name="robots" content="noindex, nofollow">
 <title>對戲・AI 角色扮演</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -129,7 +130,10 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;}
 
 /* ---- 輸入列 ---- */
 footer{flex:0 0 auto;border-top:1px solid var(--border-soft);background:linear-gradient(to top,rgba(31,24,32,.7),rgba(31,24,32,0));backdrop-filter:blur(6px);}
-.composer{max-width:var(--read);margin:0 auto;padding:14px clamp(14px,5vw,8px) calc(14px + env(safe-area-inset-bottom));display:flex;gap:10px;align-items:flex-end;}
+.composer{max-width:var(--read);margin:0 auto;padding:14px clamp(14px,5vw,8px) 10px;display:flex;gap:10px;align-items:flex-end;}
+.footlinks{max-width:var(--read);margin:0 auto;text-align:center;padding:0 14px calc(10px + env(safe-area-inset-bottom));}
+.footlinks a{font-size:.74rem;color:var(--text-faint);text-decoration:none;letter-spacing:.05em;}
+.footlinks a:hover{color:var(--text-dim);text-decoration:underline;}
 #input{
   flex:1;background:var(--surface);border:1px solid var(--border);border-radius:14px;
   color:var(--text);font-family:var(--serif);font-size:1.02rem;line-height:1.7;
@@ -216,6 +220,24 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
   *{animation-duration:.001ms!important;transition-duration:.001ms!important;scroll-behavior:auto!important;}
   .cursor{animation:none;}
 }
+
+/* ---- 年齡確認入口 ---- */
+#agegate{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;
+  background:radial-gradient(ellipse 80% 46% at 50% -8%, rgba(216,166,87,.12), transparent 62%),radial-gradient(ellipse 64% 40% at 84% 2%, rgba(207,146,155,.08), transparent 60%),var(--bg);}
+#agegate.hidden{display:none;}
+.gate-card{max-width:430px;width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:18px;padding:34px 30px;text-align:center;}
+.gate-mark{width:11px;height:11px;border-radius:50%;margin:0 auto 18px;background:radial-gradient(circle at 35% 30%,var(--accent-soft),var(--rose-deep));box-shadow:0 0 16px rgba(216,166,87,.5);}
+.gate-card h2{font-family:var(--serif);font-weight:500;font-size:1.35rem;margin:0 0 14px;letter-spacing:.04em;}
+.gate-card p{font-family:var(--sans);font-size:.92rem;line-height:1.85;color:var(--text-dim);margin:0;}
+.gate-q{font-family:var(--serif);font-size:1.08rem;color:var(--text);margin:22px 0;}
+.gate-btns{display:flex;flex-direction:column;gap:11px;}
+.gate-enter{border:none;border-radius:12px;padding:14px;font-size:.98rem;font-weight:500;letter-spacing:.04em;font-family:var(--sans);background:linear-gradient(135deg,var(--accent),var(--rose-deep));color:#1a1014;cursor:pointer;transition:filter .15s;}
+.gate-enter:hover{filter:brightness(1.08);}
+.gate-leave{background:transparent;border:1px solid var(--border);border-radius:12px;padding:13px;font-size:.92rem;font-family:var(--sans);color:var(--text-dim);cursor:pointer;transition:border-color .15s,color .15s;}
+.gate-leave:hover{border-color:var(--text-faint);color:var(--text);}
+.gate-foot{font-size:.76rem;color:var(--text-faint);margin-top:18px;line-height:1.6;}
+.gate-foot a{color:var(--rose);text-decoration:none;}
+.gate-foot a:hover{text-decoration:underline;}
 </style>
 </head>
 <body>
@@ -241,6 +263,7 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
       <textarea id="input" rows="1" placeholder="寫下你的行動或對白…（Enter 送出，Shift+Enter 換行）"></textarea>
       <button class="send" id="btn-send">送出</button>
     </div>
+    <div class="footlinks"><a href="terms.html" target="_blank" rel="noopener">使用條款與內容聲明</a></div>
   </footer>
 </div>
 
@@ -313,6 +336,20 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
 </aside>
 
 <div id="toast"><span id="toast-msg"></span><button id="toast-undo">復原</button></div>
+
+<div id="agegate">
+  <div class="gate-card">
+    <div class="gate-mark"></div>
+    <h2>進入前確認</h2>
+    <p>本網站包含成人向的虛構創作內容（戀愛、角色扮演），僅供已滿 18 歲的成年人使用。</p>
+    <div class="gate-q">你是否已年滿 18 歲？</div>
+    <div class="gate-btns">
+      <button class="gate-enter" id="gate-enter">我已年滿 18 歲，進入</button>
+      <button class="gate-leave" id="gate-leave">未滿 18 歲，離開</button>
+    </div>
+    <div class="gate-foot">點選「進入」即表示你確認已達所在地區的法定成年年齡。詳見<a href="terms.html" target="_blank" rel="noopener">使用條款與內容聲明</a>。</div>
+  </div>
+</div>
 
 <script>
 "use strict";
@@ -669,14 +706,22 @@ function toast(msg,undoFn){
 }
 function hideToast(){$("#toast").classList.remove("show");}
 
+/* ============ 年齡限制（成人內容入口） ============ */
+function passAgeGate(){
+  $("#agegate").classList.add("hidden");
+  if(!state.apiKey.trim())openDrawer();
+  $("#input").focus();
+}
+$("#gate-enter").addEventListener("click",()=>{store.set("airp_age_ok","1");passAgeGate();});
+$("#gate-leave").addEventListener("click",()=>{window.location.replace("https://www.google.com");});
+
 /* ============ 啟動 ============ */
 loadState();
 syncForm();
 renderPresets();
 renderChat();
 updateSendBtn();
-$("#input").focus();
-if(!state.apiKey.trim())openDrawer();
+if(store.get("airp_age_ok")==="1")passAgeGate();
 </script>
 </body>
 </html>
