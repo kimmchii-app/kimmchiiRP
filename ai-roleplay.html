@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>對戲・AI 角色扮演</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;600&family=Noto+Sans+TC:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#17121a;
+  --bg-2:#1f1820;
+  --surface:#261d28;
+  --surface-2:#2f2431;
+  --border:#3a2e3c;
+  --border-soft:#2c2230;
+  --text:#ece2e6;
+  --text-dim:#a394a0;
+  --text-faint:#73656f;
+  --accent:#d8a657;
+  --accent-soft:#ecca8c;
+  --rose:#cf929b;
+  --rose-deep:#b9737d;
+  --danger:#cf7b7b;
+  --serif:"Noto Serif TC","Songti TC","Source Han Serif TC","Source Han Serif TC VF","PMingLiU",serif;
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --read:720px;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;margin:0;}
+body{
+  font-family:var(--sans);
+  color:var(--text);
+  background:
+    radial-gradient(ellipse 80% 46% at 50% -8%, rgba(216,166,87,.11), transparent 62%),
+    radial-gradient(ellipse 64% 40% at 84% 2%, rgba(207,146,155,.07), transparent 60%),
+    var(--bg);
+  background-attachment:fixed;
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+button{font-family:inherit;cursor:pointer;color:inherit;}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px;border:2px solid transparent;background-clip:padding-box;}
+::-webkit-scrollbar-thumb:hover{background:var(--surface-2);background-clip:padding-box;}
+
+#app{display:flex;flex-direction:column;height:100dvh;}
+
+/* ---- 頂列 ---- */
+header{
+  display:flex;align-items:center;gap:14px;
+  padding:12px clamp(14px,4vw,28px);
+  border-bottom:1px solid var(--border-soft);
+  background:linear-gradient(to bottom, rgba(38,29,40,.55), rgba(38,29,40,0));
+  backdrop-filter:blur(6px);
+  flex:0 0 auto;
+}
+.brand{display:flex;align-items:center;gap:11px;min-width:0;}
+.brand .mark{width:9px;height:9px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--accent-soft),var(--rose-deep));box-shadow:0 0 14px rgba(216,166,87,.45);flex:0 0 auto;}
+.brand h1{font-family:var(--serif);font-weight:500;font-size:1.06rem;margin:0;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.brand .sub{color:var(--text-faint);font-size:.74rem;letter-spacing:.22em;margin-left:2px;}
+.spacer{flex:1;}
+.ghost{
+  background:transparent;border:1px solid var(--border);
+  padding:7px 13px;border-radius:9px;font-size:.84rem;color:var(--text-dim);
+  transition:border-color .18s, color .18s, background .18s;white-space:nowrap;
+}
+.ghost:hover{border-color:var(--accent);color:var(--text);background:rgba(216,166,87,.06);}
+.ghost.gear{padding:7px 11px;}
+
+/* ---- 對話區 ---- */
+main{flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;}
+.thread{max-width:var(--read);margin:0 auto;padding:34px clamp(16px,5vw,8px) 40px;}
+.empty{
+  max-width:var(--read);margin:0 auto;padding:18vh 24px;text-align:center;color:var(--text-faint);
+}
+.empty .glyph{font-family:var(--serif);font-size:2.4rem;color:var(--rose-deep);opacity:.7;}
+.empty p{font-family:var(--serif);font-size:1.02rem;line-height:1.9;margin:.6em 0 0;color:var(--text-dim);}
+.empty .hint{font-family:var(--sans);font-size:.82rem;margin-top:1.4em;color:var(--text-faint);letter-spacing:.02em;}
+
+.msg{margin-bottom:30px;animation:rise .42s cubic-bezier(.2,.7,.2,1) both;}
+@keyframes rise{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+
+.msg-ai .meta{display:flex;align-items:baseline;gap:12px;margin-bottom:11px;}
+.msg-ai .name{
+  font-family:var(--sans);font-size:.72rem;color:var(--rose);
+  letter-spacing:.34em;font-weight:500;
+}
+.msg-ai .name::before{content:"";display:inline-block;width:18px;height:1px;background:var(--rose-deep);vertical-align:middle;margin-right:9px;opacity:.6;}
+.msg-ai .body{
+  font-family:var(--serif);font-size:1.075rem;line-height:2.0;color:var(--text);
+  white-space:pre-wrap;word-break:break-word;letter-spacing:.012em;
+}
+.msg-ai .dlg{color:var(--rose);}
+.msg-ai .count{font-family:var(--sans);font-size:.7rem;color:var(--text-faint);margin-top:10px;letter-spacing:.08em;}
+
+.msg-user{display:flex;justify-content:flex-end;}
+.msg-user .bubble{
+  position:relative;max-width:82%;
+  background:linear-gradient(to bottom,var(--surface),var(--bg-2));
+  border:1px solid var(--border-soft);
+  border-radius:16px 16px 5px 16px;padding:13px 17px;
+}
+.msg-user .body{font-family:var(--serif);font-size:1rem;line-height:1.85;color:var(--text-dim);white-space:pre-wrap;word-break:break-word;}
+.msg-user .dlg{color:var(--accent-soft);}
+
+/* 訊息操作 */
+.actions{display:flex;gap:4px;opacity:0;transition:opacity .16s;}
+.msg:hover .actions, .msg:focus-within .actions{opacity:1;}
+.msg-ai .actions{margin-left:auto;}
+.msg-user .actions{position:absolute;top:-13px;right:8px;background:var(--bg-2);border:1px solid var(--border-soft);border-radius:8px;padding:2px;}
+.act{background:transparent;border:none;color:var(--text-faint);font-size:.74rem;padding:3px 7px;border-radius:6px;transition:color .15s, background .15s;}
+.act:hover{color:var(--text);background:rgba(216,166,87,.1);}
+.act.del:hover{color:var(--danger);background:rgba(207,123,123,.12);}
+
+/* 編輯中 */
+.edit-wrap{display:flex;flex-direction:column;gap:9px;}
+.edit-wrap textarea{
+  width:100%;background:var(--bg-2);border:1px solid var(--accent);border-radius:10px;
+  color:var(--text);font-family:var(--serif);font-size:1.02rem;line-height:1.9;padding:12px 14px;resize:vertical;min-height:90px;
+}
+.edit-btns{display:flex;gap:8px;}
+
+.cursor{display:inline-block;width:2px;height:1.05em;background:var(--rose);margin-left:1px;vertical-align:-2px;animation:blink 1s steps(2) infinite;border-radius:1px;}
+@keyframes blink{50%{opacity:0;}}
+
+/* ---- 輸入列 ---- */
+footer{flex:0 0 auto;border-top:1px solid var(--border-soft);background:linear-gradient(to top,rgba(31,24,32,.7),rgba(31,24,32,0));backdrop-filter:blur(6px);}
+.composer{max-width:var(--read);margin:0 auto;padding:14px clamp(14px,5vw,8px) calc(14px + env(safe-area-inset-bottom));display:flex;gap:10px;align-items:flex-end;}
+#input{
+  flex:1;background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  color:var(--text);font-family:var(--serif);font-size:1.02rem;line-height:1.7;
+  padding:13px 16px;resize:none;max-height:200px;min-height:50px;transition:border-color .18s;
+}
+#input:focus{outline:none;border-color:var(--accent);}
+#input::placeholder{color:var(--text-faint);}
+#input:disabled{opacity:.5;}
+.send{
+  flex:0 0 auto;height:50px;padding:0 22px;border:none;border-radius:14px;font-size:.92rem;font-weight:500;letter-spacing:.06em;
+  background:linear-gradient(135deg,var(--accent),var(--rose-deep));color:#1a1014;
+  transition:filter .18s, transform .1s, opacity .18s;
+}
+.send:hover{filter:brightness(1.08);}
+.send:active{transform:translateY(1px);}
+.send:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.3);}
+.send.stop{background:var(--surface-2);color:var(--text);border:1px solid var(--border);}
+
+/* ---- 抽屜（設定） ---- */
+#overlay{position:fixed;inset:0;background:rgba(8,5,9,.6);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .25s;z-index:40;}
+#overlay.show{opacity:1;pointer-events:auto;}
+#drawer{
+  position:fixed;top:0;right:0;height:100dvh;width:min(440px,100vw);z-index:50;
+  background:var(--bg-2);border-left:1px solid var(--border);
+  transform:translateX(100%);transition:transform .3s cubic-bezier(.3,.8,.3,1);
+  display:flex;flex-direction:column;
+}
+#drawer.show{transform:none;}
+.drawer-head{display:flex;align-items:center;padding:18px 22px;border-bottom:1px solid var(--border-soft);}
+.drawer-head h2{font-family:var(--serif);font-weight:500;font-size:1.1rem;margin:0;letter-spacing:.05em;}
+.drawer-head .close{margin-left:auto;background:transparent;border:none;color:var(--text-dim);font-size:1.5rem;line-height:1;padding:2px 8px;border-radius:8px;}
+.drawer-head .close:hover{color:var(--text);background:var(--surface);}
+.drawer-body{flex:1;overflow-y:auto;padding:8px 22px 30px;}
+.field{margin-top:22px;}
+.field-sec{font-family:var(--sans);font-size:.72rem;letter-spacing:.26em;color:var(--accent);margin:30px 0 4px;padding-top:18px;border-top:1px solid var(--border-soft);}
+.field-sec:first-child{border-top:none;padding-top:0;margin-top:6px;}
+label{display:block;font-size:.84rem;color:var(--text-dim);margin-bottom:7px;}
+label .tip{color:var(--text-faint);font-size:.76rem;margin-left:6px;}
+input[type=text],input[type=password],input[type=number],textarea,select{
+  width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  color:var(--text);font-family:var(--sans);font-size:.92rem;padding:10px 13px;transition:border-color .16s;
+}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);}
+textarea.tall{font-family:var(--serif);font-size:.95rem;line-height:1.8;resize:vertical;min-height:150px;}
+textarea.mid{font-family:var(--serif);font-size:.95rem;line-height:1.8;resize:vertical;min-height:90px;}
+.key-row{display:flex;gap:8px;}
+.key-row input{flex:1;}
+.icon-btn{flex:0 0 auto;width:42px;border:1px solid var(--border);background:var(--surface);border-radius:10px;color:var(--text-dim);font-size:.78rem;}
+.icon-btn:hover{border-color:var(--accent);color:var(--text);}
+.range-row{display:flex;align-items:center;gap:14px;}
+input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
+.range-val{font-family:var(--serif);font-size:1rem;color:var(--accent-soft);min-width:42px;text-align:right;}
+.note{font-size:.78rem;color:var(--text-faint);line-height:1.65;margin-top:8px;}
+.note a{color:var(--rose);}
+
+/* 角色庫 */
+.preset-add{display:flex;gap:8px;margin-top:8px;}
+.preset-add input{flex:1;}
+.btn-sm{border:1px solid var(--accent);background:rgba(216,166,87,.1);color:var(--accent-soft);border-radius:10px;padding:0 16px;font-size:.85rem;white-space:nowrap;}
+.btn-sm:hover{background:rgba(216,166,87,.18);}
+.preset-list{margin-top:12px;display:flex;flex-direction:column;gap:8px;}
+.preset{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border-soft);border-radius:10px;padding:10px 13px;}
+.preset .pname{flex:1;font-family:var(--serif);font-size:.95rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.preset button{background:transparent;border:none;color:var(--text-faint);font-size:.8rem;padding:4px 8px;border-radius:7px;}
+.preset button:hover{color:var(--text);background:var(--surface-2);}
+.preset button.del:hover{color:var(--danger);}
+.preset-empty{color:var(--text-faint);font-size:.82rem;padding:6px 2px;}
+
+/* Toast */
+#toast{position:fixed;left:50%;bottom:96px;transform:translate(-50%,16px);z-index:60;
+  background:var(--surface-2);border:1px solid var(--border);border-radius:12px;
+  padding:11px 16px;display:flex;align-items:center;gap:14px;box-shadow:0 10px 30px rgba(0,0,0,.4);
+  opacity:0;pointer-events:none;transition:opacity .22s, transform .22s;max-width:90vw;}
+#toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto;}
+#toast-msg{font-size:.86rem;color:var(--text);}
+#toast-undo{background:transparent;border:none;color:var(--accent-soft);font-size:.86rem;font-weight:500;padding:2px 4px;}
+#toast-undo:hover{text-decoration:underline;}
+
+@media (max-width:560px){
+  .brand .sub{display:none;}
+  .msg-ai .body{font-size:1.03rem;line-height:1.92;}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms!important;transition-duration:.001ms!important;scroll-behavior:auto!important;}
+  .cursor{animation:none;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">
+      <span class="mark"></span>
+      <h1 id="title">對戲</h1>
+      <span class="sub">AI ROLEPLAY</span>
+    </div>
+    <span class="spacer"></span>
+    <button class="ghost" id="btn-export">匯出</button>
+    <button class="ghost" id="btn-new">新對話</button>
+    <button class="ghost gear" id="btn-settings">設定</button>
+  </header>
+
+  <main id="main">
+    <div class="thread" id="thread"></div>
+  </main>
+
+  <footer>
+    <div class="composer">
+      <textarea id="input" rows="1" placeholder="寫下你的行動或對白…（Enter 送出，Shift+Enter 換行）"></textarea>
+      <button class="send" id="btn-send">送出</button>
+    </div>
+  </footer>
+</div>
+
+<div id="overlay"></div>
+<aside id="drawer">
+  <div class="drawer-head">
+    <h2>設定</h2>
+    <button class="close" id="drawer-close">&times;</button>
+  </div>
+  <div class="drawer-body">
+
+    <div class="field-sec">連線</div>
+    <div class="field">
+      <label>Gemini API 金鑰</label>
+      <div class="key-row">
+        <input type="password" id="f-key" placeholder="貼上你的 API 金鑰" autocomplete="off">
+        <button class="icon-btn" id="key-toggle" title="顯示／隱藏">顯示</button>
+      </div>
+      <p class="note">金鑰只會存在你這台瀏覽器的本機儲存空間，不會上傳到任何伺服器，只用來直接呼叫 Google Gemini。沒有金鑰可到 <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> 免費取得。</p>
+    </div>
+    <div class="field">
+      <label>模型 <span class="tip">可自行輸入其他模型名稱</span></label>
+      <input type="text" id="f-model" list="models" placeholder="gemini-2.5-flash">
+      <datalist id="models">
+        <option value="gemini-2.5-flash">
+        <option value="gemini-2.5-pro">
+        <option value="gemini-2.5-flash-lite">
+        <option value="gemini-2.0-flash">
+      </datalist>
+    </div>
+
+    <div class="field-sec">生成</div>
+    <div class="field">
+      <label>創意度 <span class="tip">越高越奔放、越低越穩定</span></label>
+      <div class="range-row">
+        <input type="range" id="f-temp" min="0" max="2" step="0.05">
+        <span class="range-val" id="temp-val">0.95</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>單則回覆長度上限 <span class="tip">tokens；約 900 字建議 1500 以上</span></label>
+      <input type="number" id="f-tokens" min="256" max="8192" step="128">
+    </div>
+
+    <div class="field-sec">角色</div>
+    <div class="field">
+      <label>角色名稱</label>
+      <input type="text" id="f-name" placeholder="例如：霍燼">
+    </div>
+    <div class="field">
+      <label>角色設定（系統提示）</label>
+      <textarea class="tall" id="f-system"></textarea>
+    </div>
+    <div class="field">
+      <label>開場白 <span class="tip">每次「新對話」由此開場，可留空</span></label>
+      <textarea class="mid" id="f-opening"></textarea>
+    </div>
+
+    <div class="field-sec">角色庫</div>
+    <div class="field">
+      <div class="preset-add">
+        <input type="text" id="preset-name" placeholder="為目前角色取個名字">
+        <button class="btn-sm" id="preset-save">存檔</button>
+      </div>
+      <p class="note">把目前的「角色名稱／設定／開場白」存成一組，之後可一鍵載入。</p>
+      <div class="preset-list" id="preset-list"></div>
+    </div>
+
+  </div>
+</aside>
+
+<div id="toast"><span id="toast-msg"></span><button id="toast-undo">復原</button></div>
+
+<script>
+"use strict";
+
+/* ============ 本機儲存（含降級處理，沙箱內也不會壞） ============ */
+const store=(()=>{
+  let ok=false;
+  try{localStorage.setItem("__t","1");localStorage.removeItem("__t");ok=true;}catch(e){ok=false;}
+  const mem={};
+  return{
+    get(k){try{return ok?localStorage.getItem(k):(k in mem?mem[k]:null);}catch{return k in mem?mem[k]:null;}},
+    set(k,v){try{ok?localStorage.setItem(k,v):(mem[k]=v);}catch{mem[k]=v;}},
+    ok
+  };
+})();
+
+/* ============ 預設角色（你的格式規則已寫進去） ============ */
+const DEFAULT_NAME="霍燼";
+const DEFAULT_SYSTEM=
+`你是一位專業的中文小說對戲夥伴，正在與我進行一對一的角色扮演（RP）。請完全沉浸在角色之中，與我共同推進一段故事。
+
+【你扮演的角色】
+霍燼，三十二歲，跨國企業「燼石集團」的總裁。外表冷峻、氣場強勢，習慣掌控全局；對外不假辭色，唯獨對「你（我所扮演的角色）」會在不經意間流露佔有與在意。聰明、果決，帶著危險的溫柔。
+
+【書寫規則】
+- 一律使用繁體中文，並使用全形標點（「」、，。…？！）。
+- 以第三人稱描寫霍燼，動作描寫與對白自然交錯，不要整段只有對白或只有敘述。
+- 每則回覆約 900 字，維持小說般的敘事密度與畫面感。
+- 只描寫霍燼以及周遭環境、氛圍，絕對不要替我（我的角色）決定行動、心理或台詞，把選擇權留給我。
+- 適時推進劇情、製造張力與轉折，不要原地打轉或一味等我下指令。
+- 保持角色性格一致，不要出戲，不要提及自己是 AI 或語言模型。
+
+請依以上設定，扮演霍燼與我對戲。`;
+const DEFAULT_OPENING=
+`夜裡十一點，燼石集團頂樓的辦公室只亮著一盞落地燈。霍燼鬆了領帶，指節抵著太陽穴，桌上那份尚未簽署的合約被擱在一旁。電梯「叮」地一聲，他沒有抬頭，卻先一步開了口。
+
+「這個時間還留在公司，是想加班——還是在等我？」
+
+他終於側過臉，目光落在門口的身影上，唇角那一抹弧度淺得幾乎看不出來，眼神卻牢牢將人攏住，不容許半分退路。`;
+
+/* ============ 狀態 ============ */
+let state={
+  apiKey:"",model:"gemini-2.5-flash",temperature:0.95,maxTokens:2048,
+  charName:DEFAULT_NAME,systemPrompt:DEFAULT_SYSTEM,opening:DEFAULT_OPENING,
+  messages:[],presets:[]
+};
+let streaming=false,currentAbort=null,editingIndex=null;
+
+/* ============ 工具 ============ */
+const $=(s,el=document)=>el.querySelector(s);
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function charLen(s){return [...(s||"")].length;}
+function renderBody(text,isStreaming){
+  let h=esc(text||"");
+  h=h.replace(/「[^」]*」/g,m=>`<span class="dlg">${m}</span>`);
+  h=h.replace(/『[^』]*』/g,m=>`<span class="dlg">${m}</span>`);
+  if(isStreaming)h+=`<span class="cursor"></span>`;
+  return h;
+}
+
+/* ============ 載入／儲存 ============ */
+function loadState(){
+  try{const s=store.get("airp_settings");if(s)Object.assign(state,JSON.parse(s));}catch{}
+  try{const p=store.get("airp_presets");if(p)state.presets=JSON.parse(p)||[];}catch{}
+  const m=store.get("airp_messages");
+  if(m!==null){try{state.messages=JSON.parse(m)||[];}catch{state.messages=[];}}
+  else{state.messages=state.opening&&state.opening.trim()?[{role:"model",text:state.opening}]:[];}
+}
+let saveTimer;
+function saveSettings(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{
+    store.set("airp_settings",JSON.stringify({
+      apiKey:state.apiKey,model:state.model,temperature:state.temperature,maxTokens:state.maxTokens,
+      charName:state.charName,systemPrompt:state.systemPrompt,opening:state.opening
+    }));
+  },250);
+}
+function saveMessages(){store.set("airp_messages",JSON.stringify(state.messages));}
+function savePresets(){store.set("airp_presets",JSON.stringify(state.presets));}
+
+/* ============ Gemini 串流呼叫 ============ */
+async function streamGemini(onChunk,signal){
+  const url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(state.model.trim())}:streamGenerateContent?alt=sse&key=${encodeURIComponent(state.apiKey.trim())}`;
+  const contents=state.messages
+    .filter(m=>m.text&&m.text.trim()!=="")
+    .map(m=>({role:m.role==="user"?"user":"model",parts:[{text:m.text}]}));
+  const sysText=(state.charName?`角色名稱：${state.charName}\n`:"")+(state.systemPrompt||"");
+  const body={
+    contents,
+    generationConfig:{temperature:Number(state.temperature),maxOutputTokens:Number(state.maxTokens)},
+    safetySettings:[
+      {category:"HARM_CATEGORY_HARASSMENT",threshold:"BLOCK_NONE"},
+      {category:"HARM_CATEGORY_HATE_SPEECH",threshold:"BLOCK_NONE"},
+      {category:"HARM_CATEGORY_SEXUALLY_EXPLICIT",threshold:"BLOCK_NONE"},
+      {category:"HARM_CATEGORY_DANGEROUS_CONTENT",threshold:"BLOCK_NONE"}
+    ]
+  };
+  if(sysText.trim())body.systemInstruction={parts:[{text:sysText}]};
+
+  const res=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),signal});
+  if(!res.ok){
+    let msg=`HTTP ${res.status}`;
+    try{const e=await res.json();if(e.error&&e.error.message)msg=e.error.message;}catch{}
+    if(res.status===429)msg="已達免費額度或速率上限（429）。請稍後再試，或在 Google AI Studio 開通付費 Tier。\n"+msg;
+    if(res.status===400&&/API key/i.test(msg))msg="金鑰無效，請到設定確認。\n"+msg;
+    throw new Error(msg);
+  }
+  const reader=res.body.getReader();
+  const dec=new TextDecoder();
+  let buf="",finish=null;
+  while(true){
+    const{done,value}=await reader.read();
+    if(done)break;
+    buf+=dec.decode(value,{stream:true});
+    let i;
+    while((i=buf.indexOf("\n"))>=0){
+      const line=buf.slice(0,i).trim();buf=buf.slice(i+1);
+      if(!line.startsWith("data:"))continue;
+      const js=line.slice(5).trim();
+      if(!js||js==="[DONE]")continue;
+      let data;try{data=JSON.parse(js);}catch{continue;}
+      if(data.promptFeedback&&data.promptFeedback.blockReason)throw new Error("提示被安全機制攔截："+data.promptFeedback.blockReason);
+      const cand=data.candidates&&data.candidates[0];
+      if(cand){
+        const parts=cand.content&&cand.content.parts;
+        if(parts)for(const p of parts)if(p.text)onChunk(p.text);
+        if(cand.finishReason)finish=cand.finishReason;
+      }
+    }
+  }
+  return finish;
+}
+
+/* ============ 送出／生成 ============ */
+function nearBottom(){const m=$("#main");return m.scrollHeight-m.scrollTop-m.clientHeight<120;}
+function scrollDown(){const m=$("#main");m.scrollTop=m.scrollHeight;}
+
+async function send(){
+  const ta=$("#input");const text=ta.value.trim();
+  if(!text||streaming)return;
+  if(!state.apiKey.trim()){toast("請先到設定貼上 Gemini 金鑰");openDrawer();return;}
+  state.messages.push({role:"user",text});
+  ta.value="";autoGrow();
+  renderChat();scrollDown();saveMessages();
+  await generate();
+}
+
+async function generate(){
+  streaming=true;updateSendBtn();
+  state.messages.push({role:"model",text:""});
+  const idx=state.messages.length-1;
+  renderChat();
+  const bodyEl=$(`.msg[data-i="${idx}"] .body`);
+  const stick=true;let acc="";
+  currentAbort=new AbortController();
+  try{
+    const finish=await streamGemini(chunk=>{
+      acc+=chunk;state.messages[idx].text=acc;
+      if(bodyEl){bodyEl.innerHTML=renderBody(acc,true);}
+      if(stick&&nearBottom())scrollDown();
+    },currentAbort.signal);
+    state.messages[idx].text=acc;
+    if(!acc.trim()){
+      const why=finish==="SAFETY"?"（回覆被安全機制攔截，可調整劇情或降低敏感度後重試）"
+        :finish==="MAX_TOKENS"?"（已達長度上限就被截斷，可調高回覆長度上限）"
+        :finish?`（生成結束：${finish}）`:"（沒有收到內容，請重試）";
+      state.messages[idx].text="…"+why;
+    }
+  }catch(err){
+    if(err&&err.name==="AbortError"){
+      if(!acc.trim()){state.messages.splice(idx,1);}
+    }else{
+      state.messages[idx].text=(acc?acc+"\n\n":"")+"⚠ 發生錯誤：\n"+(err&&err.message?err.message:String(err));
+    }
+  }finally{
+    streaming=false;currentAbort=null;updateSendBtn();
+    renderChat();saveMessages();
+  }
+}
+
+function regenerate(i){
+  if(streaming)return;
+  if(i!==state.messages.length-1||state.messages[i].role!=="model")return;
+  state.messages.splice(i,1);
+  renderChat();
+  generate();
+}
+
+/* ============ 渲染 ============ */
+function renderChat(){
+  const t=$("#thread");
+  if(state.messages.length===0){
+    t.innerHTML=`<div class="empty"><div class="glyph">墨</div><p>設定好你的角色後，<br>從下方寫下第一個動作，故事就開始了。</p><div class="hint">尚未設定金鑰？點右上角「設定」。</div></div>`;
+    return;
+  }
+  const lastModel=(()=>{for(let k=state.messages.length-1;k>=0;k--)if(state.messages[k].role==="model")return k;return -1;})();
+  let html="";
+  state.messages.forEach((m,i)=>{
+    if(i===editingIndex){
+      html+=`<div class="msg ${m.role==="user"?"msg-user":"msg-ai"}" data-i="${i}"><div class="edit-wrap">
+        <textarea data-edit="${i}">${esc(m.text)}</textarea>
+        <div class="edit-btns"><button class="btn-sm" data-act="save" data-i="${i}">儲存</button>
+        <button class="act" data-act="cancel" data-i="${i}">取消</button></div></div></div>`;
+      return;
+    }
+    if(m.role==="user"){
+      html+=`<div class="msg msg-user" data-i="${i}"><div class="bubble">
+        <div class="actions"><button class="act" data-act="edit" data-i="${i}">編輯</button>
+        <button class="act del" data-act="del" data-i="${i}">刪除</button></div>
+        <div class="body">${renderBody(m.text,false)}</div></div></div>`;
+    }else{
+      const canRegen=(i===lastModel&&i===state.messages.length-1);
+      html+=`<div class="msg msg-ai" data-i="${i}"><div class="meta">
+        <span class="name">${esc(state.charName||"對方")}</span>
+        <span class="actions">
+        ${canRegen?`<button class="act" data-act="regen" data-i="${i}">重新生成</button>`:""}
+        <button class="act" data-act="edit" data-i="${i}">編輯</button>
+        <button class="act del" data-act="del" data-i="${i}">刪除</button></span></div>
+        <div class="body">${renderBody(m.text,false)}</div>
+        <div class="count">字數 ${charLen(m.text)}</div></div>`;
+    }
+  });
+  t.innerHTML=html;
+}
+
+/* 對話區事件委派 */
+$("#thread").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-act]");if(!b)return;
+  const i=Number(b.dataset.i),act=b.dataset.act;
+  if(act==="del"){
+    const removed=state.messages[i];const at=i;
+    state.messages.splice(i,1);
+    if(editingIndex!==null)editingIndex=null;
+    renderChat();saveMessages();
+    toast("已刪除一則訊息",()=>{state.messages.splice(at,0,removed);renderChat();saveMessages();});
+  }else if(act==="edit"){
+    editingIndex=i;renderChat();
+    const ta=$(`textarea[data-edit="${i}"]`);if(ta){ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);}
+  }else if(act==="cancel"){
+    editingIndex=null;renderChat();
+  }else if(act==="save"){
+    const ta=$(`textarea[data-edit="${i}"]`);
+    if(ta){state.messages[i].text=ta.value;}
+    editingIndex=null;renderChat();saveMessages();
+  }else if(act==="regen"){
+    regenerate(i);
+  }
+});
+
+/* ============ 頂列按鈕 ============ */
+$("#btn-new").addEventListener("click",()=>{
+  if(streaming){toast("生成中，請先停止");return;}
+  const backup=state.messages.slice();
+  state.messages=state.opening&&state.opening.trim()?[{role:"model",text:state.opening}]:[];
+  editingIndex=null;renderChat();scrollDown();saveMessages();
+  toast("已開始新對話",()=>{state.messages=backup;renderChat();saveMessages();});
+});
+
+$("#btn-export").addEventListener("click",()=>{
+  if(state.messages.length===0){toast("目前沒有對話可匯出");return;}
+  const name=state.charName||"對方";
+  let out=`角色：${name}\n生成模型：${state.model}\n匯出時間：${new Date().toLocaleString("zh-TW")}\n\n${"─".repeat(24)}\n\n`;
+  state.messages.forEach(m=>{out+=(m.role==="user"?"【你】":`【${name}】`)+"\n"+m.text+"\n\n";});
+  const blob=new Blob([out],{type:"text/plain;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download=`對戲_${name}_${new Date().toISOString().slice(0,10)}.txt`;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+});
+
+/* ============ 抽屜 ============ */
+function openDrawer(){$("#drawer").classList.add("show");$("#overlay").classList.add("show");}
+function closeDrawer(){$("#drawer").classList.remove("show");$("#overlay").classList.remove("show");}
+$("#btn-settings").addEventListener("click",openDrawer);
+$("#drawer-close").addEventListener("click",closeDrawer);
+$("#overlay").addEventListener("click",closeDrawer);
+
+/* 設定欄位綁定 */
+function syncForm(){
+  $("#f-key").value=state.apiKey;
+  $("#f-model").value=state.model;
+  $("#f-temp").value=state.temperature;$("#temp-val").textContent=Number(state.temperature).toFixed(2);
+  $("#f-tokens").value=state.maxTokens;
+  $("#f-name").value=state.charName;
+  $("#f-system").value=state.systemPrompt;
+  $("#f-opening").value=state.opening;
+}
+$("#f-key").addEventListener("input",e=>{state.apiKey=e.target.value;saveSettings();});
+$("#key-toggle").addEventListener("click",()=>{
+  const i=$("#f-key");const show=i.type==="password";i.type=show?"text":"password";$("#key-toggle").textContent=show?"隱藏":"顯示";
+});
+$("#f-model").addEventListener("input",e=>{state.model=e.target.value;saveSettings();});
+$("#f-temp").addEventListener("input",e=>{state.temperature=Number(e.target.value);$("#temp-val").textContent=state.temperature.toFixed(2);saveSettings();});
+$("#f-tokens").addEventListener("input",e=>{state.maxTokens=Math.max(64,Number(e.target.value)||2048);saveSettings();});
+$("#f-name").addEventListener("input",e=>{state.charName=e.target.value;saveSettings();renderChat();});
+$("#f-system").addEventListener("input",e=>{state.systemPrompt=e.target.value;saveSettings();});
+$("#f-opening").addEventListener("input",e=>{state.opening=e.target.value;saveSettings();});
+
+/* ============ 角色庫 ============ */
+function renderPresets(){
+  const box=$("#preset-list");
+  if(!state.presets.length){box.innerHTML=`<div class="preset-empty">尚未存檔任何角色。</div>`;return;}
+  box.innerHTML=state.presets.map(p=>
+    `<div class="preset" data-id="${p.id}"><span class="pname">${esc(p.name)}</span>
+      <button data-pact="load" data-id="${p.id}">載入</button>
+      <button class="del" data-pact="del" data-id="${p.id}">刪除</button></div>`).join("");
+}
+$("#preset-save").addEventListener("click",()=>{
+  const nameInput=$("#preset-name");
+  const name=nameInput.value.trim()||state.charName.trim()||"未命名角色";
+  state.presets.push({id:Date.now().toString(36),name,charName:state.charName,systemPrompt:state.systemPrompt,opening:state.opening});
+  savePresets();renderPresets();nameInput.value="";
+  toast(`已存檔「${name}」`);
+});
+$("#preset-list").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-pact]");if(!b)return;
+  const id=b.dataset.id,act=b.dataset.pact;
+  const p=state.presets.find(x=>x.id===id);if(!p)return;
+  if(act==="load"){
+    state.charName=p.charName;state.systemPrompt=p.systemPrompt;state.opening=p.opening;
+    syncForm();saveSettings();renderChat();
+    toast(`已載入「${p.name}」，按「新對話」即可用新角色開場`);
+  }else if(act==="del"){
+    const at=state.presets.indexOf(p);state.presets.splice(at,1);savePresets();renderPresets();
+    toast(`已刪除「${p.name}」`,()=>{state.presets.splice(at,0,p);savePresets();renderPresets();});
+  }
+});
+
+/* ============ 輸入列 ============ */
+function autoGrow(){const ta=$("#input");ta.style.height="auto";ta.style.height=Math.min(ta.scrollHeight,200)+"px";}
+$("#input").addEventListener("input",autoGrow);
+$("#input").addEventListener("keydown",e=>{
+  if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing){e.preventDefault();send();}
+});
+function updateSendBtn(){
+  const b=$("#btn-send"),ta=$("#input");
+  if(streaming){b.textContent="停止";b.classList.add("stop");ta.disabled=false;}
+  else{b.textContent="送出";b.classList.remove("stop");ta.disabled=false;ta.focus();}
+}
+$("#btn-send").addEventListener("click",()=>{
+  if(streaming){if(currentAbort)currentAbort.abort();}
+  else send();
+});
+
+/* ============ Toast ============ */
+let toastTimer;
+function toast(msg,undoFn){
+  $("#toast-msg").textContent=msg;
+  const ub=$("#toast-undo");
+  if(undoFn){ub.style.display="";ub.onclick=()=>{undoFn();hideToast();};}else{ub.style.display="none";}
+  $("#toast").classList.add("show");
+  clearTimeout(toastTimer);toastTimer=setTimeout(hideToast,5200);
+}
+function hideToast(){$("#toast").classList.remove("show");}
+
+/* ============ 啟動 ============ */
+loadState();
+syncForm();
+renderPresets();
+renderChat();
+updateSendBtn();
+$("#input").focus();
+if(!state.apiKey.trim())openDrawer();
+</script>
+</body>
+</html>
