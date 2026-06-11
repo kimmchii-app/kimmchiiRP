@@ -11,20 +11,20 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;600&family=Noto+Sans+TC:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#17121a;
-  --bg-2:#1f1820;
-  --surface:#261d28;
-  --surface-2:#2f2431;
-  --border:#3a2e3c;
-  --border-soft:#2c2230;
-  --text:#ece2e6;
-  --text-dim:#a394a0;
-  --text-faint:#73656f;
-  --accent:#d8a657;
-  --accent-soft:#ecca8c;
-  --rose:#cf929b;
-  --rose-deep:#b9737d;
-  --danger:#cf7b7b;
+  --bg:#0f1714;
+  --bg-2:#14201b;
+  --surface:#19271f;
+  --surface-2:#213128;
+  --border:#2c4036;
+  --border-soft:#21302a;
+  --text:#e8efe9;
+  --text-dim:#9fb3a8;
+  --text-faint:#6a8076;
+  --accent:#19c39a;
+  --accent-soft:#7fe3c2;
+  --rose:#86d57e;
+  --rose-deep:#3bbf8a;
+  --danger:#e0817a;
   --serif:"Noto Serif TC","Songti TC","Source Han Serif TC","Source Han Serif TC VF","PMingLiU",serif;
   --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
   --read:720px;
@@ -35,8 +35,8 @@ body{
   font-family:var(--sans);
   color:var(--text);
   background:
-    radial-gradient(ellipse 80% 46% at 50% -8%, rgba(216,166,87,.11), transparent 62%),
-    radial-gradient(ellipse 64% 40% at 84% 2%, rgba(207,146,155,.07), transparent 60%),
+    radial-gradient(ellipse 80% 46% at 50% -8%, rgba(25,195,154,.11), transparent 62%),
+    radial-gradient(ellipse 64% 40% at 84% 2%, rgba(134,213,126,.07), transparent 60%),
     var(--bg);
   background-attachment:fixed;
   -webkit-font-smoothing:antialiased;
@@ -55,12 +55,12 @@ header{
   display:flex;align-items:center;gap:14px;
   padding:12px clamp(14px,4vw,28px);
   border-bottom:1px solid var(--border-soft);
-  background:linear-gradient(to bottom, rgba(38,29,40,.55), rgba(38,29,40,0));
+  background:linear-gradient(to bottom, rgba(18,32,28,.55), rgba(18,32,28,0));
   backdrop-filter:blur(6px);
   flex:0 0 auto;
 }
 .brand{display:flex;align-items:center;gap:11px;min-width:0;}
-.brand .mark{width:9px;height:9px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--accent-soft),var(--rose-deep));box-shadow:0 0 14px rgba(216,166,87,.45);flex:0 0 auto;}
+.brand .mark{width:9px;height:9px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--accent-soft),var(--rose-deep));box-shadow:0 0 14px rgba(25,195,154,.45);flex:0 0 auto;}
 .brand h1{font-family:var(--serif);font-weight:500;font-size:1.06rem;margin:0;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .brand .sub{color:var(--text-faint);font-size:.74rem;letter-spacing:.22em;margin-left:2px;}
 .spacer{flex:1;}
@@ -69,7 +69,7 @@ header{
   padding:7px 13px;border-radius:9px;font-size:.84rem;color:var(--text-dim);
   transition:border-color .18s, color .18s, background .18s;white-space:nowrap;
 }
-.ghost:hover{border-color:var(--accent);color:var(--text);background:rgba(216,166,87,.06);}
+.ghost:hover{border-color:var(--accent);color:var(--text);background:rgba(25,195,154,.06);}
 .ghost.gear{padding:7px 11px;}
 
 /* ---- 對話區 ---- */
@@ -114,8 +114,8 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;}
 .msg-ai .actions{margin-left:auto;}
 .msg-user .actions{position:absolute;top:-13px;right:8px;background:var(--bg-2);border:1px solid var(--border-soft);border-radius:8px;padding:2px;}
 .act{background:transparent;border:none;color:var(--text-faint);font-size:.74rem;padding:3px 7px;border-radius:6px;transition:color .15s, background .15s;}
-.act:hover{color:var(--text);background:rgba(216,166,87,.1);}
-.act.del:hover{color:var(--danger);background:rgba(207,123,123,.12);}
+.act:hover{color:var(--text);background:rgba(25,195,154,.1);}
+.act.del:hover{color:var(--danger);background:rgba(224,129,122,.12);}
 
 /* 編輯中 */
 .edit-wrap{display:flex;flex-direction:column;gap:9px;}
@@ -129,7 +129,7 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;}
 @keyframes blink{50%{opacity:0;}}
 
 /* ---- 輸入列 ---- */
-footer{flex:0 0 auto;border-top:1px solid var(--border-soft);background:linear-gradient(to top,rgba(31,24,32,.7),rgba(31,24,32,0));backdrop-filter:blur(6px);}
+footer{flex:0 0 auto;border-top:1px solid var(--border-soft);background:linear-gradient(to top,rgba(16,30,26,.7),rgba(16,30,26,0));backdrop-filter:blur(6px);}
 .composer{max-width:var(--read);margin:0 auto;padding:14px clamp(14px,5vw,8px) 10px;display:flex;gap:10px;align-items:flex-end;}
 .footlinks{max-width:var(--read);margin:0 auto;text-align:center;padding:0 14px calc(10px + env(safe-area-inset-bottom));}
 .footlinks a{font-size:.74rem;color:var(--text-faint);text-decoration:none;letter-spacing:.05em;}
@@ -144,7 +144,7 @@ footer{flex:0 0 auto;border-top:1px solid var(--border-soft);background:linear-g
 #input:disabled{opacity:.5;}
 .send{
   flex:0 0 auto;height:50px;padding:0 22px;border:none;border-radius:14px;font-size:.92rem;font-weight:500;letter-spacing:.06em;
-  background:linear-gradient(135deg,var(--accent),var(--rose-deep));color:#1a1014;
+  background:linear-gradient(135deg,var(--accent),var(--rose-deep));color:#06231c;
   transition:filter .18s, transform .1s, opacity .18s;
 }
 .send:hover{filter:brightness(1.08);}
@@ -192,8 +192,8 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
 /* 角色庫 */
 .preset-add{display:flex;gap:8px;margin-top:8px;}
 .preset-add input{flex:1;}
-.btn-sm{border:1px solid var(--accent);background:rgba(216,166,87,.1);color:var(--accent-soft);border-radius:10px;padding:0 16px;font-size:.85rem;white-space:nowrap;}
-.btn-sm:hover{background:rgba(216,166,87,.18);}
+.btn-sm{border:1px solid var(--accent);background:rgba(25,195,154,.1);color:var(--accent-soft);border-radius:10px;padding:0 16px;font-size:.85rem;white-space:nowrap;}
+.btn-sm:hover{background:rgba(25,195,154,.18);}
 .preset-list{margin-top:12px;display:flex;flex-direction:column;gap:8px;}
 .preset{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border-soft);border-radius:10px;padding:10px 13px;}
 .preset .pname{flex:1;font-family:var(--serif);font-size:.95rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -203,7 +203,7 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
 .preset-empty{color:var(--text-faint);font-size:.82rem;padding:6px 2px;}
 
 /* Toast */
-#toast{position:fixed;left:50%;bottom:96px;transform:translate(-50%,16px);z-index:60;
+#toast{position:fixed;left:50%;bottom:96px;transform:translate(-50%,16px);z-index:150;
   background:var(--surface-2);border:1px solid var(--border);border-radius:12px;
   padding:11px 16px;display:flex;align-items:center;gap:14px;box-shadow:0 10px 30px rgba(0,0,0,.4);
   opacity:0;pointer-events:none;transition:opacity .22s, transform .22s;max-width:90vw;}
@@ -221,17 +221,63 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
   .cursor{animation:none;}
 }
 
+/* ---- 選擇角色畫面 ---- */
+#charselect{position:fixed;inset:0;z-index:100;overflow-y:auto;display:none;
+  background:radial-gradient(ellipse 80% 46% at 50% -8%, rgba(25,195,154,.11), transparent 62%),radial-gradient(ellipse 64% 40% at 84% 2%, rgba(134,213,126,.07), transparent 60%),var(--bg);}
+#charselect.show{display:block;}
+.cs-wrap{max-width:920px;margin:0 auto;padding:clamp(40px,8vh,64px) clamp(18px,5vw,28px) 70px;}
+.cs-top{display:flex;align-items:center;gap:11px;margin-bottom:8px;}
+.cs-top .mark{width:9px;height:9px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--accent-soft),var(--rose-deep));box-shadow:0 0 14px rgba(25,195,154,.45);}
+.cs-top h1{font-family:var(--serif);font-weight:500;font-size:1.7rem;letter-spacing:.04em;margin:0;}
+.cs-sub{color:var(--text-dim);font-size:.92rem;margin:0 0 30px;letter-spacing:.02em;}
+.cs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:18px;}
+.card{position:relative;min-height:230px;border:1px solid var(--border);border-radius:16px;padding:18px;cursor:pointer;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;background:linear-gradient(to bottom,var(--surface),var(--bg-2));background-size:cover;background-position:center;transition:transform .16s,border-color .16s,box-shadow .16s;}
+.card:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 12px 30px rgba(0,0,0,.42);}
+.card .ava{position:absolute;top:15px;left:15px;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:1.25rem;color:#06231c;background:linear-gradient(135deg,var(--accent-soft),var(--rose-deep));}
+.card .cinfo{position:relative;z-index:1;}
+.card .cname{font-family:var(--serif);font-size:1.22rem;color:var(--text);margin-bottom:6px;letter-spacing:.02em;}
+.card .cteaser{font-family:var(--serif);font-size:.85rem;color:var(--text-dim);line-height:1.7;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.card.hasimg .cname{color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.7);}
+.card.hasimg .cteaser{color:rgba(255,255,255,.82);text-shadow:0 1px 8px rgba(0,0,0,.7);}
+.cs-loading{grid-column:1/-1;color:var(--text-faint);font-size:.9rem;padding:18px 2px;}
+.card-acts{position:absolute;top:11px;right:11px;display:flex;gap:4px;opacity:0;transition:opacity .15s;}
+.card:hover .card-acts{opacity:1;}
+.card-acts button{background:var(--bg-2);border:1px solid var(--border-soft);color:var(--text-faint);font-size:.72rem;padding:4px 8px;border-radius:7px;cursor:pointer;}
+.card-acts button:hover{color:var(--text);}
+.card-acts button.del:hover{color:var(--danger);border-color:var(--danger);}
+.card.add{display:flex;flex-direction:column;align-items:center;justify-content:center;border-style:dashed;color:var(--text-faint);min-height:172px;background:transparent;}
+.card.add:hover{color:var(--accent-soft);transform:translateY(-3px);}
+.card.add .plus{font-size:2rem;line-height:1;margin-bottom:8px;}
+.cs-foot{text-align:center;margin-top:34px;}
+.cs-foot a{font-size:.74rem;color:var(--text-faint);text-decoration:none;letter-spacing:.05em;}
+.cs-foot a:hover{color:var(--text-dim);text-decoration:underline;}
+
+/* ---- 角色編輯視窗 ---- */
+#chareditor{position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;padding:22px;}
+#chareditor.show{display:flex;}
+.ce-backdrop{position:absolute;inset:0;background:rgba(8,5,9,.66);backdrop-filter:blur(2px);}
+.ce-card{position:relative;z-index:1;width:min(520px,100%);max-height:88dvh;overflow-y:auto;background:var(--bg-2);border:1px solid var(--border);border-radius:18px;padding:28px;}
+.ce-card h2{font-family:var(--serif);font-weight:500;font-size:1.25rem;margin:0 0 6px;letter-spacing:.03em;}
+.ce-card label{margin-top:18px;}
+.ce-btns{display:flex;align-items:center;gap:10px;margin-top:24px;}
+.ce-del,.ce-cancel{background:transparent;border:1px solid var(--border);border-radius:10px;padding:9px 15px;font-size:.85rem;cursor:pointer;font-family:var(--sans);}
+.ce-del{color:var(--text-faint);}
+.ce-del:hover{border-color:var(--danger);color:var(--danger);}
+.ce-cancel{color:var(--text-dim);}
+.ce-cancel:hover{color:var(--text);border-color:var(--text-faint);}
+#ce-save{padding:9px 22px;}
+
 /* ---- 年齡確認入口 ---- */
 #agegate{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;
-  background:radial-gradient(ellipse 80% 46% at 50% -8%, rgba(216,166,87,.12), transparent 62%),radial-gradient(ellipse 64% 40% at 84% 2%, rgba(207,146,155,.08), transparent 60%),var(--bg);}
+  background:radial-gradient(ellipse 80% 46% at 50% -8%, rgba(25,195,154,.12), transparent 62%),radial-gradient(ellipse 64% 40% at 84% 2%, rgba(134,213,126,.08), transparent 60%),var(--bg);}
 #agegate.hidden{display:none;}
 .gate-card{max-width:430px;width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:18px;padding:34px 30px;text-align:center;}
-.gate-mark{width:11px;height:11px;border-radius:50%;margin:0 auto 18px;background:radial-gradient(circle at 35% 30%,var(--accent-soft),var(--rose-deep));box-shadow:0 0 16px rgba(216,166,87,.5);}
+.gate-mark{width:11px;height:11px;border-radius:50%;margin:0 auto 18px;background:radial-gradient(circle at 35% 30%,var(--accent-soft),var(--rose-deep));box-shadow:0 0 16px rgba(25,195,154,.5);}
 .gate-card h2{font-family:var(--serif);font-weight:500;font-size:1.35rem;margin:0 0 14px;letter-spacing:.04em;}
 .gate-card p{font-family:var(--sans);font-size:.92rem;line-height:1.85;color:var(--text-dim);margin:0;}
 .gate-q{font-family:var(--serif);font-size:1.08rem;color:var(--text);margin:22px 0;}
 .gate-btns{display:flex;flex-direction:column;gap:11px;}
-.gate-enter{border:none;border-radius:12px;padding:14px;font-size:.98rem;font-weight:500;letter-spacing:.04em;font-family:var(--sans);background:linear-gradient(135deg,var(--accent),var(--rose-deep));color:#1a1014;cursor:pointer;transition:filter .15s;}
+.gate-enter{border:none;border-radius:12px;padding:14px;font-size:.98rem;font-weight:500;letter-spacing:.04em;font-family:var(--sans);background:linear-gradient(135deg,var(--accent),var(--rose-deep));color:#06231c;cursor:pointer;transition:filter .15s;}
 .gate-enter:hover{filter:brightness(1.08);}
 .gate-leave{background:transparent;border:1px solid var(--border);border-radius:12px;padding:13px;font-size:.92rem;font-family:var(--sans);color:var(--text-dim);cursor:pointer;transition:border-color .15s,color .15s;}
 .gate-leave:hover{border-color:var(--text-faint);color:var(--text);}
@@ -249,6 +295,7 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
       <span class="sub">AI ROLEPLAY</span>
     </div>
     <span class="spacer"></span>
+    <button class="ghost" id="btn-chars">角色</button>
     <button class="ghost" id="btn-export">匯出</button>
     <button class="ghost" id="btn-new">新對話</button>
     <button class="ghost gear" id="btn-settings">設定</button>
@@ -309,33 +356,40 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
     </div>
 
     <div class="field-sec">角色</div>
-    <div class="field">
-      <label>角色名稱</label>
-      <input type="text" id="f-name" placeholder="例如：霍燼">
-    </div>
-    <div class="field">
-      <label>角色設定（系統提示）</label>
-      <textarea class="tall" id="f-system"></textarea>
-    </div>
-    <div class="field">
-      <label>開場白 <span class="tip">每次「新對話」由此開場，可留空</span></label>
-      <textarea class="mid" id="f-opening"></textarea>
-    </div>
-
-    <div class="field-sec">角色庫</div>
-    <div class="field">
-      <div class="preset-add">
-        <input type="text" id="preset-name" placeholder="為目前角色取個名字">
-        <button class="btn-sm" id="preset-save">存檔</button>
-      </div>
-      <p class="note">把目前的「角色名稱／設定／開場白」存成一組，之後可一鍵載入。</p>
-      <div class="preset-list" id="preset-list"></div>
-    </div>
+    <p class="note">角色的名稱、設定與開場白，請在首頁的「角色」畫面新增與編輯。每個角色都會各自記住自己的對話。</p>
 
   </div>
 </aside>
 
 <div id="toast"><span id="toast-msg"></span><button id="toast-undo">復原</button></div>
+
+<div id="charselect">
+  <div class="cs-wrap">
+    <div class="cs-top"><span class="mark"></span><h1>選擇角色</h1></div>
+    <p class="cs-sub">挑一張角色卡開始對戲。每個角色都會各自記住自己的故事。</p>
+    <div class="cs-grid" id="cs-grid"></div>
+    <div class="cs-foot"><a href="terms.html" target="_blank" rel="noopener">使用條款與內容聲明</a></div>
+  </div>
+</div>
+
+<div id="chareditor">
+  <div class="ce-backdrop" id="ce-backdrop"></div>
+  <div class="ce-card">
+    <h2 id="ce-title">新增角色</h2>
+    <label>角色名稱</label>
+    <input type="text" id="ce-name" placeholder="例如：霍燼">
+    <label>角色設定（系統提示）</label>
+    <textarea class="tall" id="ce-system" placeholder="描述這個角色的身分、性格、說話風格，以及書寫規則…"></textarea>
+    <label>開場白 <span class="tip">每次「新對話」由此開場，可留空</span></label>
+    <textarea class="mid" id="ce-opening"></textarea>
+    <div class="ce-btns">
+      <button class="ce-del" id="ce-del">刪除</button>
+      <span class="spacer"></span>
+      <button class="ce-cancel" id="ce-cancel">取消</button>
+      <button class="btn-sm" id="ce-save">儲存</button>
+    </div>
+  </div>
+</div>
 
 <div id="agegate">
   <div class="gate-card">
@@ -394,7 +448,7 @@ const DEFAULT_OPENING=
 let state={
   apiKey:"",model:"gemini-2.5-flash",temperature:0.95,maxTokens:2048,
   charName:DEFAULT_NAME,systemPrompt:DEFAULT_SYSTEM,opening:DEFAULT_OPENING,
-  messages:[],presets:[]
+  messages:[],characters:[],activeId:null
 };
 let streaming=false,currentAbort=null,editingIndex=null;
 
@@ -411,25 +465,49 @@ function renderBody(text,isStreaming){
 }
 
 /* ============ 載入／儲存 ============ */
+function msgKey(id){return "airp_msgs_"+id;}
+function saveCharacters(){store.set("airp_characters",JSON.stringify(state.characters));}
 function loadState(){
-  try{const s=store.get("airp_settings");if(s)Object.assign(state,JSON.parse(s));}catch{}
-  try{const p=store.get("airp_presets");if(p)state.presets=JSON.parse(p)||[];}catch{}
-  const m=store.get("airp_messages");
-  if(m!==null){try{state.messages=JSON.parse(m)||[];}catch{state.messages=[];}}
-  else{state.messages=state.opening&&state.opening.trim()?[{role:"model",text:state.opening}]:[];}
+  try{const s=store.get("airp_settings");if(s){const o=JSON.parse(s);
+    if(o.apiKey!=null)state.apiKey=o.apiKey;
+    if(o.model)state.model=o.model;
+    if(o.temperature!=null)state.temperature=o.temperature;
+    if(o.maxTokens!=null)state.maxTokens=o.maxTokens;
+  }}catch{}
+  try{const old=store.get("airp_messages");if(old!=null&&store.get(msgKey("default"))==null)store.set(msgKey("default"),old);}catch{}
+}
+async function loadCharacters(){
+  try{
+    const mres=await fetch("character/manifest.json",{cache:"no-store"});
+    if(!mres.ok)throw 0;
+    const folders=await mres.json();
+    const list=[];
+    for(const f of folders){
+      try{
+        const cres=await fetch("character/"+encodeURIComponent(f)+"/character.json",{cache:"no-store"});
+        if(!cres.ok)continue;
+        const c=await cres.json();
+        const id=c.id||f;
+        const image=c.image?("character/"+encodeURIComponent(f)+"/"+encodeURIComponent(c.image)):"";
+        list.push({id,name:c.name||f,system:c.system||"",opening:c.opening||"",image});
+      }catch{}
+    }
+    if(list.length){state.characters=list;return;}
+    throw 0;
+  }catch{
+    state.characters=[{id:"default",name:DEFAULT_NAME,system:DEFAULT_SYSTEM,opening:DEFAULT_OPENING,image:""}];
+  }
 }
 let saveTimer;
 function saveSettings(){
   clearTimeout(saveTimer);
   saveTimer=setTimeout(()=>{
     store.set("airp_settings",JSON.stringify({
-      apiKey:state.apiKey,model:state.model,temperature:state.temperature,maxTokens:state.maxTokens,
-      charName:state.charName,systemPrompt:state.systemPrompt,opening:state.opening
+      apiKey:state.apiKey,model:state.model,temperature:state.temperature,maxTokens:state.maxTokens
     }));
   },250);
 }
-function saveMessages(){store.set("airp_messages",JSON.stringify(state.messages));}
-function savePresets(){store.set("airp_presets",JSON.stringify(state.presets));}
+function saveMessages(){if(state.activeId)store.set(msgKey(state.activeId),JSON.stringify(state.messages));}
 
 /* ============ Gemini 串流呼叫 ============ */
 async function streamGemini(onChunk,signal){
@@ -543,7 +621,7 @@ function regenerate(i){
 function renderChat(){
   const t=$("#thread");
   if(state.messages.length===0){
-    t.innerHTML=`<div class="empty"><div class="glyph">墨</div><p>設定好你的角色後，<br>從下方寫下第一個動作，故事就開始了。</p><div class="hint">尚未設定金鑰？點右上角「設定」。</div></div>`;
+    t.innerHTML=`<div class="empty"><div class="glyph">墨</div><p>從下方寫下第一個動作，<br>故事就開始了。</p><div class="hint">想換角色點右上角「角色」；還沒設定金鑰點「設定」。</div></div>`;
     return;
   }
   const lastModel=(()=>{for(let k=state.messages.length-1;k>=0;k--)if(state.messages[k].role==="model")return k;return -1;})();
@@ -634,9 +712,6 @@ function syncForm(){
   $("#f-model").value=state.model;
   $("#f-temp").value=state.temperature;$("#temp-val").textContent=Number(state.temperature).toFixed(2);
   $("#f-tokens").value=state.maxTokens;
-  $("#f-name").value=state.charName;
-  $("#f-system").value=state.systemPrompt;
-  $("#f-opening").value=state.opening;
 }
 $("#f-key").addEventListener("input",e=>{state.apiKey=e.target.value;saveSettings();});
 $("#key-toggle").addEventListener("click",()=>{
@@ -645,38 +720,107 @@ $("#key-toggle").addEventListener("click",()=>{
 $("#f-model").addEventListener("input",e=>{state.model=e.target.value;saveSettings();});
 $("#f-temp").addEventListener("input",e=>{state.temperature=Number(e.target.value);$("#temp-val").textContent=state.temperature.toFixed(2);saveSettings();});
 $("#f-tokens").addEventListener("input",e=>{state.maxTokens=Math.max(64,Number(e.target.value)||2048);saveSettings();});
-$("#f-name").addEventListener("input",e=>{state.charName=e.target.value;saveSettings();renderChat();});
-$("#f-system").addEventListener("input",e=>{state.systemPrompt=e.target.value;saveSettings();});
-$("#f-opening").addEventListener("input",e=>{state.opening=e.target.value;saveSettings();});
 
-/* ============ 角色庫 ============ */
-function renderPresets(){
-  const box=$("#preset-list");
-  if(!state.presets.length){box.innerHTML=`<div class="preset-empty">尚未存檔任何角色。</div>`;return;}
-  box.innerHTML=state.presets.map(p=>
-    `<div class="preset" data-id="${p.id}"><span class="pname">${esc(p.name)}</span>
-      <button data-pact="load" data-id="${p.id}">載入</button>
-      <button class="del" data-pact="del" data-id="${p.id}">刪除</button></div>`).join("");
+/* ============ 選擇角色 / 角色卡 ============ */
+function teaserOf(c){
+  const t=(c.opening||c.system||"").trim().replace(/\s+/g," ");
+  return t?t.slice(0,46):"（尚未設定開場白）";
 }
-$("#preset-save").addEventListener("click",()=>{
-  const nameInput=$("#preset-name");
-  const name=nameInput.value.trim()||state.charName.trim()||"未命名角色";
-  state.presets.push({id:Date.now().toString(36),name,charName:state.charName,systemPrompt:state.systemPrompt,opening:state.opening});
-  savePresets();renderPresets();nameInput.value="";
-  toast(`已存檔「${name}」`);
-});
-$("#preset-list").addEventListener("click",e=>{
-  const b=e.target.closest("button[data-pact]");if(!b)return;
-  const id=b.dataset.id,act=b.dataset.pact;
-  const p=state.presets.find(x=>x.id===id);if(!p)return;
-  if(act==="load"){
-    state.charName=p.charName;state.systemPrompt=p.systemPrompt;state.opening=p.opening;
-    syncForm();saveSettings();renderChat();
-    toast(`已載入「${p.name}」，按「新對話」即可用新角色開場`);
-  }else if(act==="del"){
-    const at=state.presets.indexOf(p);state.presets.splice(at,1);savePresets();renderPresets();
-    toast(`已刪除「${p.name}」`,()=>{state.presets.splice(at,0,p);savePresets();renderPresets();});
+function renderCharSelect(){
+  const g=$("#cs-grid");
+  if(!state.characters.length){g.innerHTML=`<div class="cs-loading">沒有讀到角色。請確認 character/manifest.json 與各角色資料夾。</div>`;return;}
+  g.innerHTML=state.characters.map(c=>{
+    const hasimg=!!c.image;
+    const style=hasimg?` style="background-image:linear-gradient(to top,rgba(8,18,15,.94) 6%,rgba(8,18,15,.4) 52%,rgba(8,18,15,.12) 100%),url('${esc(c.image)}')"`:"";
+    const ava=hasimg?"":`<div class="ava">${esc([...(c.name||"?")][0]||"?")}</div>`;
+    return `<div class="card${hasimg?" hasimg":""}" data-id="${esc(c.id)}"${style}>
+       ${ava}
+       <div class="cinfo"><div class="cname">${esc(c.name||"未命名角色")}</div>
+       <div class="cteaser">${esc(teaserOf(c))}</div></div>
+     </div>`;
+  }).join("");
+}
+async function showSelection(){
+  $("#charselect").classList.add("show");
+  $("#cs-grid").innerHTML=`<div class="cs-loading">載入角色中…</div>`;
+  await loadCharacters();
+  renderCharSelect();
+}
+function hideSelection(){$("#charselect").classList.remove("show");}
+
+function activate(id){
+  const c=state.characters.find(x=>x.id===id);if(!c)return;
+  state.activeId=id;store.set("airp_active",id);
+  state.charName=c.name;state.systemPrompt=c.system;state.opening=c.opening;
+  const raw=store.get(msgKey(id));
+  if(raw!=null){try{state.messages=JSON.parse(raw)||[];}catch{state.messages=[];}}
+  else{state.messages=c.opening&&c.opening.trim()?[{role:"model",text:c.opening}]:[];}
+  editingIndex=null;
+  hideSelection();
+  renderChat();
+  setTimeout(scrollDown,0);
+  if(!state.apiKey.trim())openDrawer();
+}
+
+$("#cs-grid").addEventListener("click",e=>{
+  const act=e.target.closest("button[data-cact]");
+  if(act){
+    const id=act.dataset.id,a=act.dataset.cact;
+    const c=state.characters.find(x=>x.id===id);if(!c)return;
+    if(a==="edit"){openCardEditor(id);}
+    else if(a==="del"){
+      const at=state.characters.indexOf(c);
+      state.characters.splice(at,1);saveCharacters();renderCharSelect();
+      toast(`已刪除「${c.name}」`,()=>{state.characters.splice(at,0,c);saveCharacters();renderCharSelect();});
+    }
+    return;
   }
+  if(e.target.closest("#card-add")){openCardEditor(null);return;}
+  const card=e.target.closest(".card[data-id]");
+  if(card)activate(card.dataset.id);
+});
+
+/* ---- 角色編輯視窗 ---- */
+let editorId=null;
+function openCardEditor(id){
+  editorId=id;
+  const c=id?state.characters.find(x=>x.id===id):null;
+  $("#ce-title").textContent=c?"編輯角色":"新增角色";
+  $("#ce-name").value=c?c.name:"";
+  $("#ce-system").value=c?c.system:"";
+  $("#ce-opening").value=c?c.opening:"";
+  $("#ce-del").style.display=c?"":"none";
+  $("#chareditor").classList.add("show");
+  $("#ce-name").focus();
+}
+function closeCardEditor(){$("#chareditor").classList.remove("show");editorId=null;}
+$("#ce-cancel").addEventListener("click",closeCardEditor);
+$("#ce-backdrop").addEventListener("click",closeCardEditor);
+$("#ce-save").addEventListener("click",()=>{
+  const name=$("#ce-name").value.trim()||"未命名角色";
+  const system=$("#ce-system").value;
+  const opening=$("#ce-opening").value;
+  if(editorId){
+    const c=state.characters.find(x=>x.id===editorId);
+    if(c){c.name=name;c.system=system;c.opening=opening;}
+    if(editorId===state.activeId){state.charName=name;state.systemPrompt=system;state.opening=opening;renderChat();}
+  }else{
+    state.characters.push({id:"c"+Date.now().toString(36),name,system,opening});
+  }
+  saveCharacters();renderCharSelect();closeCardEditor();
+  toast("已儲存角色");
+});
+$("#ce-del").addEventListener("click",()=>{
+  if(!editorId)return;
+  const c=state.characters.find(x=>x.id===editorId);if(!c)return;
+  const at=state.characters.indexOf(c);
+  state.characters.splice(at,1);saveCharacters();renderCharSelect();closeCardEditor();
+  toast(`已刪除「${c.name}」`,()=>{state.characters.splice(at,0,c);saveCharacters();renderCharSelect();});
+});
+
+$("#btn-chars").addEventListener("click",()=>{
+  if(streaming){toast("生成中，請先停止");return;}
+  showSelection();
 });
 
 /* ============ 輸入列 ============ */
@@ -706,22 +850,18 @@ function toast(msg,undoFn){
 }
 function hideToast(){$("#toast").classList.remove("show");}
 
-/* ============ 年齡限制（成人內容入口） ============ */
+/* ============ 年齡限制（成人內容入口；每次開啟都確認） ============ */
 function passAgeGate(){
   $("#agegate").classList.add("hidden");
-  if(!state.apiKey.trim())openDrawer();
-  $("#input").focus();
+  showSelection();
 }
-$("#gate-enter").addEventListener("click",()=>{store.set("airp_age_ok","1");passAgeGate();});
+$("#gate-enter").addEventListener("click",()=>{passAgeGate();});
 $("#gate-leave").addEventListener("click",()=>{window.location.replace("https://www.google.com");});
 
 /* ============ 啟動 ============ */
 loadState();
 syncForm();
-renderPresets();
-renderChat();
 updateSendBtn();
-if(store.get("airp_age_ok")==="1")passAgeGate();
 </script>
 </body>
 </html>
