@@ -221,6 +221,9 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
   .cursor{animation:none;}
 }
 
+#format-reset{margin-top:12px;}
+.field code{background:var(--surface);border:1px solid var(--border-soft);border-radius:5px;padding:1px 5px;font-size:.82em;}
+
 /* ---- 選擇角色畫面 ---- */
 #charselect{position:fixed;inset:0;z-index:100;overflow-y:auto;display:none;
   background:radial-gradient(ellipse 80% 46% at 50% -8%, rgba(25,195,154,.11), transparent 62%),radial-gradient(ellipse 64% 40% at 84% 2%, rgba(134,213,126,.07), transparent 60%),var(--bg);}
@@ -358,6 +361,14 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
     <div class="field-sec">角色</div>
     <p class="note">角色的名稱、設定與開場白，請在首頁的「角色」畫面新增與編輯。每個角色都會各自記住自己的對話。</p>
 
+    <div class="field-sec">文字格式</div>
+    <div class="field">
+      <label>共用書寫格式 <span class="tip">套用到所有角色</span></label>
+      <textarea class="tall" id="f-format"></textarea>
+      <p class="note">這段會自動加在每個角色提示詞的後面。預設來自 <code>character/format.md</code>；在這裡修改會以你的版本為準（存在這台瀏覽器）。</p>
+      <button class="btn-sm" id="format-reset">還原預設</button>
+    </div>
+
   </div>
 </aside>
 
@@ -444,10 +455,19 @@ const DEFAULT_OPENING=
 
 他終於側過臉，目光落在門口的身影上，唇角那一抹弧度淺得幾乎看不出來，眼神卻牢牢將人攏住，不容許半分退路。`;
 
+const DEFAULT_FORMAT=
+`# 共用書寫格式（套用到所有角色）
+- 一律使用繁體中文，並使用全形標點（「」、，。…？！）。
+- 以第三人稱描寫角色，動作描寫與對白自然交錯，不要整段只有對白或只有敘述。
+- 每則回覆約 600～900 字，維持小說般的敘事密度與畫面感。
+- 只描寫角色與場景氛圍，絕對不要替「我」（使用者的角色）決定行動、心理或台詞，把選擇權留給我。
+- 適時推進劇情、製造張力與轉折，不要原地打轉或一味等我下指令。
+- 保持角色一致，不要出戲，不要提及自己是 AI 或語言模型。`;
+
 /* ============ 狀態 ============ */
 let state={
   apiKey:"",model:"gemini-2.5-flash",temperature:0.95,maxTokens:2048,
-  charName:DEFAULT_NAME,systemPrompt:DEFAULT_SYSTEM,opening:DEFAULT_OPENING,
+  charName:DEFAULT_NAME,systemPrompt:DEFAULT_SYSTEM,opening:DEFAULT_OPENING,format:DEFAULT_FORMAT,
   messages:[],characters:[],activeId:null
 };
 let streaming=false,currentAbort=null,editingIndex=null;
@@ -484,12 +504,17 @@ async function loadCharacters(){
     const list=[];
     for(const f of folders){
       try{
-        const cres=await fetch("character/"+encodeURIComponent(f)+"/character.json",{cache:"no-store"});
+        const base="character/"+encodeURIComponent(f)+"/";
+        const cres=await fetch(base+"character.json",{cache:"no-store"});
         if(!cres.ok)continue;
         const c=await cres.json();
         const id=c.id||f;
-        const image=c.image?("character/"+encodeURIComponent(f)+"/"+encodeURIComponent(c.image)):"";
-        list.push({id,name:c.name||f,system:c.system||"",opening:c.opening||"",image});
+        const image=c.image?(base+encodeURIComponent(c.image)):"";
+        let system=c.system||"";
+        let opening=c.opening||"";
+        if(c.systemFile){try{const r=await fetch(base+encodeURIComponent(c.systemFile),{cache:"no-store"});if(r.ok)system=await r.text();}catch{}}
+        if(c.openingFile){try{const r=await fetch(base+encodeURIComponent(c.openingFile),{cache:"no-store"});if(r.ok)opening=await r.text();}catch{}}
+        list.push({id,name:c.name||f,system,opening,image});
       }catch{}
     }
     if(list.length){state.characters=list;return;}
@@ -515,7 +540,7 @@ async function streamGemini(onChunk,signal){
   const contents=state.messages
     .filter(m=>m.text&&m.text.trim()!=="")
     .map(m=>({role:m.role==="user"?"user":"model",parts:[{text:m.text}]}));
-  const sysText=(state.charName?`角色名稱：${state.charName}\n`:"")+(state.systemPrompt||"");
+  const sysText=(state.charName?`角色名稱：${state.charName}\n`:"")+(state.systemPrompt||"")+(state.format&&state.format.trim()?"\n\n"+state.format:"");
   const body={
     contents,
     generationConfig:{temperature:Number(state.temperature),maxOutputTokens:Number(state.maxTokens)},
@@ -713,6 +738,7 @@ function syncForm(){
   $("#f-temp").value=state.temperature;$("#temp-val").textContent=Number(state.temperature).toFixed(2);
   $("#f-tokens").value=state.maxTokens;
 }
+function syncFormat(){$("#f-format").value=state.format;}
 $("#f-key").addEventListener("input",e=>{state.apiKey=e.target.value;saveSettings();});
 $("#key-toggle").addEventListener("click",()=>{
   const i=$("#f-key");const show=i.type==="password";i.type=show?"text":"password";$("#key-toggle").textContent=show?"隱藏":"顯示";
@@ -720,6 +746,27 @@ $("#key-toggle").addEventListener("click",()=>{
 $("#f-model").addEventListener("input",e=>{state.model=e.target.value;saveSettings();});
 $("#f-temp").addEventListener("input",e=>{state.temperature=Number(e.target.value);$("#temp-val").textContent=state.temperature.toFixed(2);saveSettings();});
 $("#f-tokens").addEventListener("input",e=>{state.maxTokens=Math.max(64,Number(e.target.value)||2048);saveSettings();});
+
+/* 共用書寫格式：預設來自 character/format.md，使用者可在設定裡覆蓋（存在本機） */
+let fmtTimer;
+function saveFormat(){clearTimeout(fmtTimer);fmtTimer=setTimeout(()=>store.set("airp_format",state.format),250);}
+async function fetchDefaultFormat(){
+  try{const r=await fetch("character/format.md",{cache:"no-store"});if(r.ok){const t=await r.text();if(t.trim())return t;}}catch{}
+  return DEFAULT_FORMAT;
+}
+async function loadFormat(){
+  const saved=store.get("airp_format");
+  if(saved!=null&&saved!=="null"){state.format=saved;}
+  else{state.format=await fetchDefaultFormat();}
+  syncFormat();
+}
+$("#f-format").addEventListener("input",e=>{state.format=e.target.value;saveFormat();});
+$("#format-reset").addEventListener("click",async()=>{
+  state.format=await fetchDefaultFormat();
+  store.set("airp_format",state.format);
+  syncFormat();
+  toast("已還原共用書寫格式");
+});
 
 /* ============ 選擇角色 / 角色卡 ============ */
 function teaserOf(c){
@@ -861,6 +908,7 @@ $("#gate-leave").addEventListener("click",()=>{window.location.replace("https://
 /* ============ 啟動 ============ */
 loadState();
 syncForm();
+loadFormat();
 updateSendBtn();
 </script>
 </body>
