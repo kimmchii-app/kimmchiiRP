@@ -275,6 +275,26 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
 .card.add{display:flex;flex-direction:column;align-items:center;justify-content:center;border-style:dashed;color:var(--text-faint);min-height:172px;background:transparent;}
 .card.add:hover{color:var(--accent-soft);transform:translateY(-3px);}
 .card.add .plus{font-size:2rem;line-height:1;margin-bottom:8px;}
+
+/* ---- 角色介紹頁 ---- */
+#charintro{position:fixed;inset:0;z-index:110;display:none;overflow-y:auto;background:var(--bg);}
+#charintro.show{display:block;}
+.ci-bg{position:fixed;inset:0;background-size:cover;background-position:center;filter:blur(26px) brightness(.34) saturate(1.05);transform:scale(1.12);z-index:0;}
+.ci-bg::after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgba(8,12,11,.5),rgba(8,12,11,.92));}
+.ci-wrap{position:relative;z-index:1;max-width:980px;margin:0 auto;padding:clamp(18px,4vw,40px);min-height:100dvh;display:flex;flex-direction:column;}
+.ci-back{align-self:flex-start;background:rgba(8,18,15,.5);border:1px solid var(--border);border-radius:10px;color:var(--text-dim);padding:8px 16px;font-size:.85rem;cursor:pointer;transition:border-color .18s,color .18s;margin-bottom:24px;}
+.ci-back:hover{border-color:var(--accent);color:var(--text);}
+.ci-grid{display:grid;grid-template-columns:minmax(0,360px) 1fr;gap:clamp(20px,3.5vw,40px);align-items:start;flex:1;}
+.ci-portrait{aspect-ratio:3/4;border-radius:18px;background-size:cover;background-position:center;background-color:var(--surface);border:1px solid var(--border);box-shadow:0 16px 48px rgba(0,0,0,.5);position:sticky;top:24px;}
+.ci-portrait.noimg{display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:3rem;color:var(--text-faint);}
+.ci-info{display:flex;flex-direction:column;min-width:0;}
+.ci-name{font-family:var(--serif);font-weight:500;font-size:clamp(1.6rem,4vw,2.3rem);letter-spacing:.04em;margin:4px 0 18px;color:var(--text);}
+.ci-bio{font-family:var(--serif);font-size:1rem;line-height:1.95;color:var(--text-dim);white-space:pre-wrap;word-break:break-word;}
+.ci-bio .dlg{color:var(--accent-soft);}
+.ci-start{margin-top:30px;align-self:flex-start;border:none;border-radius:14px;padding:14px 42px;font-size:1rem;font-weight:500;letter-spacing:.08em;cursor:pointer;color:#06231c;background:linear-gradient(135deg,var(--accent),var(--rose-deep));transition:filter .18s,transform .1s;font-family:var(--sans);}
+.ci-start:hover{filter:brightness(1.08);}
+.ci-start:active{transform:translateY(1px);}
+@media(max-width:680px){.ci-grid{grid-template-columns:1fr;}.ci-portrait{position:relative;top:0;max-width:300px;margin:0 auto;width:100%;}.ci-start{align-self:stretch;text-align:center;}}
 .cs-foot{text-align:center;margin-top:34px;}
 .cs-foot a{font-size:.74rem;color:var(--text-faint);text-decoration:none;letter-spacing:.05em;}
 .cs-foot a:hover{color:var(--text-dim);text-decoration:underline;}
@@ -292,7 +312,7 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
 .ce-del:hover{border-color:var(--danger);color:var(--danger);}
 .ce-cancel{color:var(--text-dim);}
 .ce-cancel:hover{color:var(--text);border-color:var(--text-faint);}
-#ce-save{padding:9px 22px;}
+#ce-save,#p-save{padding:9px 22px;}
 
 /* ---- 年齡確認入口 ---- */
 #agegate{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;
@@ -475,6 +495,21 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
   </div>
 </div>
 
+<div id="charintro">
+  <div class="ci-bg" id="ci-bg"></div>
+  <div class="ci-wrap">
+    <button class="ci-back" id="ci-back">‹ 返回</button>
+    <div class="ci-grid">
+      <div class="ci-portrait" id="ci-portrait"></div>
+      <div class="ci-info">
+        <h1 class="ci-name" id="ci-name"></h1>
+        <div class="ci-bio" id="ci-bio"></div>
+        <button class="ci-start" id="ci-start">開始聊天</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="chareditor">
   <div class="ce-backdrop" id="ce-backdrop"></div>
   <div class="ce-card">
@@ -647,12 +682,14 @@ async function loadCharacters(){
         const image=c.image?(base+encodeURIComponent(c.image)):"";
         let system=c.system||"";
         let opening=c.opening||"";
+        let intro=c.intro||"";
         if(c.systemFile){try{const r=await fetch(base+encodeURIComponent(c.systemFile),{cache:"no-store"});if(r.ok)system=await r.text();}catch{}}
         if(c.openingFile){try{const r=await fetch(base+encodeURIComponent(c.openingFile),{cache:"no-store"});if(r.ok)opening=await r.text();}catch{}}
+        if(c.introFile){try{const r=await fetch(base+encodeURIComponent(c.introFile),{cache:"no-store"});if(r.ok)intro=await r.text();}catch{}}
         // 附加設定檔（NPC、世界觀、場景…）：可填單一字串或陣列，依序接在角色提示詞後面
         const extras=Array.isArray(c.extraFiles)?c.extraFiles:(c.extraFiles?[c.extraFiles]:[]);
         for(const ef of extras){try{const r=await fetch(base+encodeURIComponent(ef),{cache:"no-store"});if(r.ok){const t=await r.text();if(t.trim())system+=(system?"\n\n":"")+t;}}catch{}}
-        list.push({id,name:c.name||f,system,opening,image});
+        list.push({id,name:c.name||f,system,opening,image,intro});
       }catch{}
     }
     if(list.length){state.characters=list;return;}
@@ -1149,6 +1186,24 @@ async function showSelection(){
 }
 function hideSelection(){$("#charselect").classList.remove("show");}
 
+/* ---- 角色介紹頁 ---- */
+let introId=null;
+function openIntro(id){
+  const c=state.characters.find(x=>x.id===id);if(!c)return;
+  introId=id;
+  $("#ci-name").textContent=c.name||"未命名角色";
+  const port=$("#ci-portrait"),bg=$("#ci-bg");
+  if(c.image){port.style.backgroundImage=`url('${c.image.replace(/'/g,"%27")}')`;port.classList.remove("noimg");port.textContent="";bg.style.backgroundImage=`url('${c.image.replace(/'/g,"%27")}')`;}
+  else{port.style.backgroundImage="";port.classList.add("noimg");port.textContent=[...(c.name||"?")][0]||"?";bg.style.backgroundImage="";}
+  const bio=(c.intro&&c.intro.trim())?c.intro:"（這個角色還沒有簡介。可在 character.json 加上 intro 或 introFile 來介紹他。）";
+  $("#ci-bio").innerHTML=renderBody(bio,false);
+  $("#charintro").scrollTop=0;
+  $("#charintro").classList.add("show");
+}
+function closeIntro(){$("#charintro").classList.remove("show");introId=null;}
+$("#ci-back").addEventListener("click",closeIntro);
+$("#ci-start").addEventListener("click",()=>{const id=introId;closeIntro();if(id)activate(id);});
+
 function activate(id){
   const c=state.characters.find(x=>x.id===id);if(!c)return;
   state.activeId=id;store.set("airp_active",id);
@@ -1178,7 +1233,7 @@ $("#cs-grid").addEventListener("click",e=>{
   }
   if(e.target.closest("#card-add")){openCardEditor(null);return;}
   const card=e.target.closest(".card[data-id]");
-  if(card)activate(card.dataset.id);
+  if(card)openIntro(card.dataset.id);
 });
 
 /* ---- 角色編輯視窗 ---- */

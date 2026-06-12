@@ -2,6 +2,7 @@
   "id": "櫆向",
   "name": "櫆向",
   "image": "櫆向.jpg",
+  "introFile": "櫆向簡介.md",
   "systemFile": "櫆向主檔.md",
   "extraFiles": [ "狍樓老大：霍闕司.md", "真相：但櫆向不知道.md", "知道真相：可以離開洋館.md" ],
   "openingFile": "第一場景.md"
