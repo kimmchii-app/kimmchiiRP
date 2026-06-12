@@ -151,7 +151,9 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;}
 /* ---- 輸入列 ---- */
 footer{flex:0 0 auto;border-top:1px solid var(--border-soft);background:linear-gradient(to top,rgba(16,30,26,.7),rgba(16,30,26,0));backdrop-filter:blur(6px);}
 .composer{max-width:var(--read);margin:0 auto;padding:14px clamp(14px,5vw,8px) 10px;display:flex;gap:10px;align-items:flex-end;}
-.footlinks{max-width:var(--read);margin:0 auto;text-align:center;padding:0 14px calc(10px + env(safe-area-inset-bottom));}
+.footlinks{max-width:var(--read);margin:0 auto;display:flex;justify-content:center;align-items:center;gap:16px;padding:0 14px calc(10px + env(safe-area-inset-bottom));}
+.foot-btn{background:transparent;border:1px solid var(--border);border-radius:9px;padding:6px 14px;font-size:.78rem;color:var(--text-dim);cursor:pointer;transition:border-color .18s,color .18s,background .18s;font-family:var(--sans);white-space:nowrap;}
+.foot-btn:hover{border-color:var(--accent);color:var(--text);background:rgba(25,195,154,.06);}
 .footlinks a{font-size:.74rem;color:var(--text-faint);text-decoration:none;letter-spacing:.05em;}
 .footlinks a:hover{color:var(--text-dim);text-decoration:underline;}
 #input{
@@ -276,8 +278,8 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
 .cs-foot a:hover{color:var(--text-dim);text-decoration:underline;}
 
 /* ---- 角色編輯視窗 ---- */
-#chareditor{position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;padding:22px;}
-#chareditor.show{display:flex;}
+#chareditor,#persona{position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;padding:22px;}
+#chareditor.show,#persona.show{display:flex;}
 .ce-backdrop{position:absolute;inset:0;background:rgba(8,5,9,.66);backdrop-filter:blur(2px);}
 .ce-card{position:relative;z-index:1;width:min(520px,100%);max-height:88dvh;overflow-y:auto;background:var(--bg-2);border:1px solid var(--border);border-radius:18px;padding:28px;}
 .ce-card h2{font-family:var(--serif);font-weight:500;font-size:1.25rem;margin:0 0 6px;letter-spacing:.03em;}
@@ -331,7 +333,10 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
       <textarea id="input" rows="1" placeholder="寫下你的行動或對白…（Enter 送出，Shift+Enter 換行）"></textarea>
       <button class="send" id="btn-send">送出</button>
     </div>
-    <div class="footlinks"><a href="terms.html" target="_blank" rel="noopener">使用條款與內容聲明</a></div>
+    <div class="footlinks">
+      <button class="foot-btn" id="btn-persona">✎ 我的角色</button>
+      <a href="terms.html" target="_blank" rel="noopener">使用條款與內容聲明</a>
+    </div>
   </footer>
 </div>
 
@@ -361,14 +366,30 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
       <p class="note">金鑰只會存在你這台瀏覽器的本機儲存空間，不會上傳到任何伺服器，只用來直接呼叫 Google Gemini。沒有金鑰可到 <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> 免費取得。</p>
     </div>
     <div class="field">
-      <label>模型 <span class="tip">可自行輸入其他模型名稱</span></label>
-      <input type="text" id="f-model" list="models" placeholder="gemini-2.5-flash">
-      <datalist id="models">
-        <option value="gemini-2.5-flash">
-        <option value="gemini-2.5-pro">
-        <option value="gemini-2.5-flash-lite">
-        <option value="gemini-2.0-flash">
-      </datalist>
+      <label>模型 <span class="tip">選一個，或選「自訂…」自行輸入</span></label>
+      <select id="f-model-sel">
+        <optgroup label="2.5（可關 thinking，最省額度）">
+          <option value="gemini-2.5-flash">gemini-2.5-flash（預設）</option>
+          <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite（最省）</option>
+          <option value="gemini-2.5-pro">gemini-2.5-pro（品質高，無法關思考）</option>
+        </optgroup>
+        <optgroup label="3 系列（較新）">
+          <option value="gemini-3-flash-preview">gemini-3-flash-preview</option>
+          <option value="gemini-3.5-flash">gemini-3.5-flash</option>
+          <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview</option>
+        </optgroup>
+        <optgroup label="永遠最新版">
+          <option value="gemini-flash-latest">gemini-flash-latest</option>
+          <option value="gemini-flash-lite-latest">gemini-flash-lite-latest</option>
+          <option value="gemini-pro-latest">gemini-pro-latest</option>
+        </optgroup>
+        <optgroup label="2.0（無 thinking，快）">
+          <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+          <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite</option>
+        </optgroup>
+        <option value="__custom__">自訂…（自行輸入）</option>
+      </select>
+      <input type="text" id="f-model" placeholder="自行輸入模型名稱，例：gemini-2.5-flash" style="display:none;margin-top:8px;">
     </div>
 
     <div class="field-sec">生成</div>
@@ -471,6 +492,28 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
   </div>
 </div>
 
+<div id="persona">
+  <div class="ce-backdrop" id="persona-backdrop"></div>
+  <div class="ce-card">
+    <h2>我的角色</h2>
+    <p class="note" style="margin-top:0">這裡填你扮演的角色（故事裡的「你／我」）。這份資料會提供給 AI，讓它知道你是誰、長什麼樣子；但 AI 仍不會替你決定行動。套用到所有角色。</p>
+    <label>名字</label>
+    <input type="text" id="p-name" placeholder="你的角色名字">
+    <label>年齡</label>
+    <input type="text" id="p-age" placeholder="例如：26">
+    <label>外觀</label>
+    <textarea class="mid" id="p-look" placeholder="髮色、身形、穿著、氣質…"></textarea>
+    <label>描述 <span class="tip">身分、性格、背景，可留空</span></label>
+    <textarea class="tall" id="p-desc" placeholder="你的角色的身分、個性、與這個世界的關係…"></textarea>
+    <div class="ce-btns">
+      <button class="ce-del" id="p-clear">清空</button>
+      <span class="spacer"></span>
+      <button class="ce-cancel" id="p-cancel">取消</button>
+      <button class="btn-sm" id="p-save">儲存</button>
+    </div>
+  </div>
+</div>
+
 <div id="agegate">
   <div class="gate-card">
     <div class="gate-mark"></div>
@@ -556,6 +599,7 @@ const DEFAULT_STATUS=
 let state={
   apiKey:"",model:"gemini-2.5-flash",temperature:0.95,maxTokens:2048,thinking:0,
   charName:DEFAULT_NAME,systemPrompt:DEFAULT_SYSTEM,opening:DEFAULT_OPENING,format:DEFAULT_FORMAT,statusbar:DEFAULT_STATUS,
+  persona:{name:"",age:"",look:"",desc:""},
   messages:[],characters:[],activeId:null
 };
 let streaming=false,currentAbort=null,editingIndex=null;
@@ -632,10 +676,15 @@ async function streamGemini(onChunk,signal){
   const contents=state.messages
     .filter(m=>m.text&&m.text.trim()!=="")
     .map(m=>({role:m.role==="user"?"user":"model",parts:[{text:m.text}]}));
-  const sysText=(state.charName?`角色名稱：${state.charName}\n`:"")+(state.systemPrompt||"")+(state.format&&state.format.trim()?"\n\n"+state.format:"")+(state.statusbar&&state.statusbar.trim()?"\n\n"+state.statusbar:"");
+  const sysText=(state.charName?`角色名稱：${state.charName}\n`:"")+(state.systemPrompt||"")+(state.format&&state.format.trim()?"\n\n"+state.format:"")+(state.statusbar&&state.statusbar.trim()?"\n\n"+state.statusbar:"")+personaBlock();
   const gc={temperature:Number(state.temperature),maxOutputTokens:Number(state.maxTokens)};
   const ml=state.model.trim().toLowerCase();
-  if(ml.includes("2.5")&&ml.includes("flash"))gc.thinkingConfig={thinkingBudget:Number(state.thinking)}; // 依使用者設定；0=關閉
+  const tb=Number(state.thinking); // 0 / 512 / 1024 / -1
+  if(ml.includes("2.5")&&ml.includes("flash")){
+    gc.thinkingConfig={thinkingBudget:tb};                         // 2.5 flash 系列：用 budget，0=關閉
+  }else if(ml.includes("gemini-3")){
+    if(tb>=0)gc.thinkingConfig={thinkingLevel:tb>=1024?"medium":"low"}; // 3 系列：用 level；-1 走模型預設（不送）
+  }
   const body={
     contents,
     generationConfig:gc,
@@ -828,12 +877,12 @@ function collectBackup(){
     for(let i=0;i<localStorage.length;i++){
       const k=localStorage.key(i);if(!k)continue;
       if(k==="airp_key")continue; // 不備份金鑰
-      if(k.startsWith("airp_msgs_")||k==="airp_format"||k==="airp_status"||k==="airp_active")data[k]=localStorage.getItem(k);
+      if(k.startsWith("airp_msgs_")||k==="airp_format"||k==="airp_status"||k==="airp_persona"||k==="airp_active")data[k]=localStorage.getItem(k);
     }
   }catch{}
   if(Object.keys(data).length===0){ // 後備：localStorage 不可用時，從已載入角色取
     for(const c of state.characters){const v=store.get(msgKey(c.id));if(v!=null)data[msgKey(c.id)]=v;}
-    const f=store.get("airp_format");if(f!=null)data["airp_format"]=f;const st=store.get("airp_status");if(st!=null)data["airp_status"]=st;
+    const f=store.get("airp_format");if(f!=null)data["airp_format"]=f;const st=store.get("airp_status");if(st!=null)data["airp_status"]=st;const pe=store.get("airp_persona");if(pe!=null)data["airp_persona"]=pe;
     const a=store.get("airp_active");if(a!=null)data["airp_active"]=a;
   }
   return data;
@@ -857,7 +906,7 @@ $("#restore-file").addEventListener("change",async e=>{
   try{payload=JSON.parse(await file.text());}catch{toast("檔案讀取失敗，格式不正確");return;}
   const data=payload&&payload.data;
   if(!payload||payload.app!=="kimmchii-airp"||!data||typeof data!=="object"){toast("這不是有效的對戲備份檔");return;}
-  const keys=Object.keys(data).filter(k=>k.startsWith("airp_msgs_")||k==="airp_format"||k==="airp_status"||k==="airp_active");
+  const keys=Object.keys(data).filter(k=>k.startsWith("airp_msgs_")||k==="airp_format"||k==="airp_status"||k==="airp_persona"||k==="airp_active");
   if(!keys.length){toast("備份檔裡沒有可還原的對話");return;}
   if(!confirm("匯入會以備份檔的內容覆蓋對應角色的對話紀錄，確定要還原嗎？"))return;
   for(const k of keys){try{store.set(k,data[k]);}catch{}}
@@ -943,7 +992,7 @@ async function gsPull(){
     const p=await r.json();
     if(!p||p.app!=="kimmchii-airp"||!p.data){toast("雲端檔格式不符");return;}
     if(!confirm("從雲端下載會覆蓋這台裝置對應角色的對話，確定嗎？"))return;
-    const keys=Object.keys(p.data).filter(k=>k.startsWith("airp_msgs_")||k==="airp_format"||k==="airp_status"||k==="airp_active");
+    const keys=Object.keys(p.data).filter(k=>k.startsWith("airp_msgs_")||k==="airp_format"||k==="airp_status"||k==="airp_persona"||k==="airp_active");
     for(const k of keys){try{store.set(k,p.data[k]);}catch{}}
     gsStatus("已下載，重新載入中…");setTimeout(()=>location.reload(),700);
   }catch(e){gsStatus("下載失敗："+(e.message||e));toast("下載失敗："+(e.message||e));}
@@ -973,7 +1022,7 @@ $("#overlay").addEventListener("click",()=>{closeDrawer();closeSidebar();});
 /* 設定欄位綁定 */
 function syncForm(){
   $("#f-key").value=state.apiKey;
-  $("#f-model").value=state.model;
+  applyModelUI();
   $("#f-temp").value=state.temperature;$("#temp-val").textContent=Number(state.temperature).toFixed(2);
   $("#f-tokens").value=state.maxTokens;
   $("#f-thinking").value=String(state.thinking);
@@ -985,9 +1034,49 @@ $("#key-toggle").addEventListener("click",()=>{
   const i=$("#f-key");const show=i.type==="password";i.type=show?"text":"password";$("#key-toggle").textContent=show?"隱藏":"顯示";
 });
 $("#f-model").addEventListener("input",e=>{state.model=e.target.value;saveSettings();});
+function applyModelUI(){
+  const sel=$("#f-model-sel"),inp=$("#f-model");
+  const inList=[...sel.options].some(o=>o.value===state.model&&o.value!=="__custom__");
+  if(inList){sel.value=state.model;inp.style.display="none";}
+  else{sel.value="__custom__";inp.style.display="block";inp.value=state.model;}
+}
+$("#f-model-sel").addEventListener("change",e=>{
+  const v=e.target.value;
+  if(v==="__custom__"){const inp=$("#f-model");inp.style.display="block";inp.value=state.model;inp.focus();}
+  else{state.model=v;$("#f-model").style.display="none";saveSettings();}
+});
 $("#f-temp").addEventListener("input",e=>{state.temperature=Number(e.target.value);$("#temp-val").textContent=state.temperature.toFixed(2);saveSettings();});
 $("#f-tokens").addEventListener("input",e=>{state.maxTokens=Math.max(64,Number(e.target.value)||2048);saveSettings();});
 $("#f-thinking").addEventListener("change",e=>{state.thinking=Number(e.target.value);saveSettings();});
+
+/* 我的角色（玩家角色）：套用到所有角色，存在本機並隨備份/雲端同步 */
+function personaBlock(){
+  const p=state.persona||{};
+  const lines=[p.name&&`名字：${p.name}`,p.age&&`年齡：${p.age}`,p.look&&`外觀：${p.look}`,p.desc&&`描述：${p.desc}`].filter(Boolean);
+  if(!lines.length)return "";
+  return "\n\n【使用者扮演的角色（故事中的「你」）】\n"+lines.join("\n")+"\n（依此理解使用者角色的身分與外觀；但仍不要替使用者決定其行動、心理或台詞。）";
+}
+function loadPersona(){
+  try{const s=store.get("airp_persona");if(s){const o=JSON.parse(s);state.persona={name:o.name||"",age:o.age||"",look:o.look||"",desc:o.desc||""};}}catch{}
+}
+function openPersona(){
+  const p=state.persona||{};
+  $("#p-name").value=p.name||"";$("#p-age").value=p.age||"";$("#p-look").value=p.look||"";$("#p-desc").value=p.desc||"";
+  $("#persona").classList.add("show");
+}
+function closePersona(){$("#persona").classList.remove("show");}
+$("#btn-persona").addEventListener("click",openPersona);
+$("#p-cancel").addEventListener("click",closePersona);
+$("#persona-backdrop").addEventListener("click",closePersona);
+$("#p-clear").addEventListener("click",()=>{
+  $("#p-name").value="";$("#p-age").value="";$("#p-look").value="";$("#p-desc").value="";
+});
+$("#p-save").addEventListener("click",()=>{
+  state.persona={name:$("#p-name").value.trim(),age:$("#p-age").value.trim(),look:$("#p-look").value.trim(),desc:$("#p-desc").value.trim()};
+  store.set("airp_persona",JSON.stringify(state.persona));
+  closePersona();
+  toast("已儲存我的角色");
+});
 
 /* 共用書寫格式：預設來自 character/format.md，使用者可在設定裡覆蓋（存在本機） */
 let fmtTimer;
@@ -1211,6 +1300,7 @@ loadState();
 syncForm();
 loadFormat();
 loadStatus();
+loadPersona();
 updateSendBtn();
 </script>
 </body>
