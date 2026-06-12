@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="robots" content="noindex, nofollow">
-<title>菜園慢更宇宙</title>
+<title>對戲・AI 角色扮演</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;600&family=Noto+Sans+TC:wght@400;500&display=swap" rel="stylesheet">
@@ -71,6 +71,24 @@ header{
 }
 .ghost:hover{border-color:var(--accent);color:var(--text);background:rgba(25,195,154,.06);}
 .ghost.gear{padding:7px 11px;}
+.iconbtn{width:40px;height:34px;display:inline-flex;flex-direction:column;justify-content:center;gap:5px;background:transparent;border:1px solid var(--border);border-radius:9px;padding:0 10px;cursor:pointer;transition:border-color .18s,background .18s;flex:0 0 auto;}
+.iconbtn:hover{border-color:var(--accent);background:rgba(25,195,154,.06);}
+.iconbtn span{display:block;height:2px;border-radius:2px;background:var(--text-dim);transition:background .18s;}
+.iconbtn:hover span{background:var(--text);}
+#sidebar{position:fixed;top:0;left:0;height:100dvh;width:min(320px,86vw);z-index:50;background:var(--bg-2);border-right:1px solid var(--border);transform:translateX(-100%);transition:transform .3s cubic-bezier(.3,.8,.3,1);display:flex;flex-direction:column;}
+#sidebar.show{transform:none;}
+.sb-body{flex:1;overflow-y:auto;padding:10px 12px;}
+.sb-item{display:flex;align-items:center;gap:11px;width:100%;text-align:left;padding:10px 11px;border-radius:11px;border:1px solid transparent;background:transparent;cursor:pointer;transition:background .16s,border-color .16s;margin-bottom:4px;}
+.sb-item:hover{background:var(--surface);}
+.sb-item.active{border-color:var(--accent);background:rgba(25,195,154,.08);}
+.sb-ava{width:38px;height:38px;border-radius:50%;flex:0 0 auto;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-family:var(--serif);color:var(--text-dim);background-color:var(--surface);}
+.sb-meta{min-width:0;flex:1;}
+.sb-name{font-size:.92rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sb-last{font-size:.76rem;color:var(--text-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+.sb-empty{color:var(--text-faint);font-size:.85rem;padding:24px 14px;text-align:center;line-height:1.8;}
+.sb-all{margin:8px 12px 16px;padding:10px;border:1px solid var(--border);border-radius:10px;background:transparent;color:var(--text-dim);font-size:.85rem;cursor:pointer;transition:border-color .18s,color .18s,background .18s;}
+.sb-all:hover{border-color:var(--accent);color:var(--text);background:rgba(25,195,154,.06);}
+.backup-row{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;}
 
 /* ---- 對話區 ---- */
 main{flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;}
@@ -292,11 +310,9 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
 <body>
 <div id="app">
   <header>
-    <div class="brand">
-      <span class="mark"></span>
-      <h1 id="title">對戲</h1>
-      <span class="sub">AI ROLEPLAY</span>
-    </div>
+    <button class="iconbtn" id="btn-menu" aria-label="開啟角色側欄" title="對話中的角色">
+      <span></span><span></span><span></span>
+    </button>
     <span class="spacer"></span>
     <button class="ghost" id="btn-chars">角色</button>
     <button class="ghost" id="btn-export">匯出</button>
@@ -318,6 +334,14 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
 </div>
 
 <div id="overlay"></div>
+<aside id="sidebar">
+  <div class="drawer-head">
+    <h2>對話中</h2>
+    <button class="close" id="sidebar-close">&times;</button>
+  </div>
+  <div class="sb-body" id="sb-body"></div>
+  <button class="sb-all" id="sb-all">瀏覽全部角色</button>
+</aside>
 <aside id="drawer">
   <div class="drawer-head">
     <h2>設定</h2>
@@ -367,6 +391,17 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
       <textarea class="tall" id="f-format"></textarea>
       <p class="note">這段會自動加在每個角色提示詞的後面。預設來自 <code>character/format.md</code>；在這裡修改會以你的版本為準（存在這台瀏覽器）。</p>
       <button class="btn-sm" id="format-reset">還原預設</button>
+    </div>
+
+    <div class="field-sec">備份與還原</div>
+    <div class="field">
+      <label>對話紀錄備份 <span class="tip">換手機、換電腦時用</span></label>
+      <p class="note">對話只存在這台瀏覽器。把全部角色的紀錄匯出成一個檔案，到另一台裝置打開同一個網站、再匯入，就能接著聊。為安全起見，備份檔<strong>不含</strong>你的 API 金鑰。</p>
+      <div class="backup-row">
+        <button class="btn-sm" id="btn-backup">匯出備份檔</button>
+        <button class="btn-sm" id="btn-restore">匯入備份檔</button>
+      </div>
+      <input type="file" id="restore-file" accept="application/json,.json" hidden>
     </div>
 
   </div>
@@ -514,6 +549,9 @@ async function loadCharacters(){
         let opening=c.opening||"";
         if(c.systemFile){try{const r=await fetch(base+encodeURIComponent(c.systemFile),{cache:"no-store"});if(r.ok)system=await r.text();}catch{}}
         if(c.openingFile){try{const r=await fetch(base+encodeURIComponent(c.openingFile),{cache:"no-store"});if(r.ok)opening=await r.text();}catch{}}
+        // 附加設定檔（NPC、世界觀、場景…）：可填單一字串或陣列，依序接在角色提示詞後面
+        const extras=Array.isArray(c.extraFiles)?c.extraFiles:(c.extraFiles?[c.extraFiles]:[]);
+        for(const ef of extras){try{const r=await fetch(base+encodeURIComponent(ef),{cache:"no-store"});if(r.ok){const t=await r.text();if(t.trim())system+=(system?"\n\n":"")+t;}}catch{}}
         list.push({id,name:c.name||f,system,opening,image});
       }catch{}
     }
@@ -724,12 +762,54 @@ $("#btn-export").addEventListener("click",()=>{
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 });
 
-/* ============ 抽屜 ============ */
+/* ============ 備份 / 還原（整包對話） ============ */
+function collectBackup(){
+  const data={};
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);if(!k)continue;
+      if(k==="airp_key")continue; // 不備份金鑰
+      if(k.startsWith("airp_msgs_")||k==="airp_format"||k==="airp_active")data[k]=localStorage.getItem(k);
+    }
+  }catch{}
+  if(Object.keys(data).length===0){ // 後備：localStorage 不可用時，從已載入角色取
+    for(const c of state.characters){const v=store.get(msgKey(c.id));if(v!=null)data[msgKey(c.id)]=v;}
+    const f=store.get("airp_format");if(f!=null)data["airp_format"]=f;
+    const a=store.get("airp_active");if(a!=null)data["airp_active"]=a;
+  }
+  return data;
+}
+$("#btn-backup").addEventListener("click",()=>{
+  const data=collectBackup();
+  if(Object.keys(data).length===0){toast("目前沒有任何對話可備份");return;}
+  const payload={app:"kimmchii-airp",version:1,exportedAt:new Date().toISOString(),data};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download=`airp-backup-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  toast("已匯出備份檔");
+});
+$("#btn-restore").addEventListener("click",()=>$("#restore-file").click());
+$("#restore-file").addEventListener("change",async e=>{
+  const file=e.target.files&&e.target.files[0];e.target.value="";
+  if(!file)return;
+  let payload;
+  try{payload=JSON.parse(await file.text());}catch{toast("檔案讀取失敗，格式不正確");return;}
+  const data=payload&&payload.data;
+  if(!payload||payload.app!=="kimmchii-airp"||!data||typeof data!=="object"){toast("這不是有效的對戲備份檔");return;}
+  const keys=Object.keys(data).filter(k=>k.startsWith("airp_msgs_")||k==="airp_format"||k==="airp_active");
+  if(!keys.length){toast("備份檔裡沒有可還原的對話");return;}
+  if(!confirm("匯入會以備份檔的內容覆蓋對應角色的對話紀錄，確定要還原嗎？"))return;
+  for(const k of keys){try{store.set(k,data[k]);}catch{}}
+  toast("已還原，正在重新載入…");
+  setTimeout(()=>location.reload(),700);
+});
 function openDrawer(){$("#drawer").classList.add("show");$("#overlay").classList.add("show");}
 function closeDrawer(){$("#drawer").classList.remove("show");$("#overlay").classList.remove("show");}
 $("#btn-settings").addEventListener("click",openDrawer);
 $("#drawer-close").addEventListener("click",closeDrawer);
-$("#overlay").addEventListener("click",closeDrawer);
+$("#overlay").addEventListener("click",()=>{closeDrawer();closeSidebar();});
 
 /* 設定欄位綁定 */
 function syncForm(){
@@ -868,6 +948,44 @@ $("#ce-del").addEventListener("click",()=>{
 $("#btn-chars").addEventListener("click",()=>{
   if(streaming){toast("生成中，請先停止");return;}
   showSelection();
+});
+
+/* ============ 左側對話側欄 ============ */
+function openSidebar(){renderSidebar();$("#sidebar").classList.add("show");$("#overlay").classList.add("show");}
+function closeSidebar(){$("#sidebar").classList.remove("show");$("#overlay").classList.remove("show");}
+function ongoingChats(){
+  return state.characters.filter(c=>{
+    const raw=store.get(msgKey(c.id));
+    if(raw==null)return false;
+    try{const arr=JSON.parse(raw);return Array.isArray(arr)&&arr.length>0;}catch{return false;}
+  });
+}
+function lastLineOf(id){
+  try{const arr=JSON.parse(store.get(msgKey(id))||"[]");
+    for(let i=arr.length-1;i>=0;i--){if(arr[i].text&&arr[i].text.trim())return arr[i].text.trim().replace(/\s+/g," ");}}catch{}
+  return "";
+}
+function renderSidebar(){
+  const body=$("#sb-body"),list=ongoingChats();
+  if(!list.length){body.innerHTML=`<div class="sb-empty">還沒有進行中的對話。<br>點下方「瀏覽全部角色」選一位開始。</div>`;return;}
+  body.innerHTML=list.map(c=>{
+    const img=c.image?` style="background-image:url('${esc(c.image)}')"`:"";
+    const mono=c.image?"":esc([...(c.name||"?")][0]||"?");
+    const last=esc(lastLineOf(c.id).slice(0,30))||"（開場）";
+    const act=c.id===state.activeId?" active":"";
+    return `<button class="sb-item${act}" data-id="${esc(c.id)}">
+      <div class="sb-ava"${img}>${mono}</div>
+      <div class="sb-meta"><div class="sb-name">${esc(c.name||"未命名角色")}</div><div class="sb-last">${last}</div></div>
+    </button>`;
+  }).join("");
+}
+$("#btn-menu").addEventListener("click",openSidebar);
+$("#sidebar-close").addEventListener("click",closeSidebar);
+$("#sb-all").addEventListener("click",()=>{closeSidebar();if(streaming){toast("生成中，請先停止");return;}showSelection();});
+$("#sb-body").addEventListener("click",e=>{
+  const it=e.target.closest(".sb-item");if(!it)return;
+  if(streaming){toast("生成中，請先停止");return;}
+  closeSidebar();activate(it.dataset.id);
 });
 
 /* ============ 輸入列 ============ */
