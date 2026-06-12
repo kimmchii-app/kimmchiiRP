@@ -173,6 +173,8 @@ footer{flex:0 0 auto;border-top:1px solid var(--border-soft);background:linear-g
 .send:active{transform:translateY(1px);}
 .send:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.3);}
 .send.stop{background:var(--surface-2);color:var(--text);border:1px solid var(--border);}
+.compose-btn{flex:0 0 auto;align-self:flex-end;height:50px;width:50px;display:flex;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border);border-radius:14px;color:var(--text-dim);font-size:1.15rem;cursor:pointer;transition:border-color .18s,color .18s,background .18s;}
+.compose-btn:hover{border-color:var(--accent);color:var(--text);}
 
 /* ---- 抽屜（設定） ---- */
 #overlay{position:fixed;inset:0;background:rgba(8,5,9,.6);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .25s;z-index:40;}
@@ -330,11 +332,11 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
 
   <footer>
     <div class="composer">
+      <button class="compose-btn" id="btn-persona" title="我的角色" aria-label="我的角色">✎</button>
       <textarea id="input" rows="1" placeholder="寫下你的行動或對白…（Enter 送出，Shift+Enter 換行）"></textarea>
       <button class="send" id="btn-send">送出</button>
     </div>
     <div class="footlinks">
-      <button class="foot-btn" id="btn-persona">✎ 我的角色</button>
       <a href="terms.html" target="_blank" rel="noopener">使用條款與內容聲明</a>
     </div>
   </footer>

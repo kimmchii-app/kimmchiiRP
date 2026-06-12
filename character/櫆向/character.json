@@ -4,5 +4,5 @@
   "image": "櫆向.jpg",
   "systemFile": "櫆向主檔.md",
   "extraFiles": [ "狍樓老大：霍闕司.md", "真相：但櫆向不知道.md", "知道真相：可以離開洋館.md" ],
-  "opening": [ "第一場景.md" ]
+  "openingFile": "第一場景.md"
 }
