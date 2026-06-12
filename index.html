@@ -241,7 +241,7 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
   .cursor{animation:none;}
 }
 
-#format-reset{margin-top:12px;}
+#format-reset,#status-reset{margin-top:12px;}
 .field code{background:var(--surface);border:1px solid var(--border-soft);border-radius:5px;padding:1px 5px;font-size:.82em;}
 
 /* ---- 選擇角色畫面 ---- */
@@ -383,6 +383,16 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
       <label>單則回覆長度上限 <span class="tip">tokens；約 900 字建議 1500 以上</span></label>
       <input type="number" id="f-tokens" min="256" max="8192" step="128">
     </div>
+    <div class="field">
+      <label>思考（thinking） <span class="tip">預設關閉；創作建議關，要嚴謹推理再開</span></label>
+      <select id="f-thinking">
+        <option value="0">關閉（最快最省，預設）</option>
+        <option value="512">少量（512）</option>
+        <option value="1024">標準（1024）</option>
+        <option value="-1">動態（模型自行決定）</option>
+      </select>
+      <p class="note">僅對 gemini-2.5-flash 系列有效。開啟思考會佔用回覆長度額度，記得把上面的上限一起調高。2.5-pro 一定會思考、無法關閉。</p>
+    </div>
 
     <div class="field-sec">角色</div>
     <p class="note">角色的名稱、設定與開場白，請在首頁的「角色」畫面新增與編輯。每個角色都會各自記住自己的對話。</p>
@@ -393,6 +403,14 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
       <textarea class="tall" id="f-format"></textarea>
       <p class="note">這段會自動加在每個角色提示詞的後面。預設來自 <code>character/format.md</code>；在這裡修改會以你的版本為準（存在這台瀏覽器）。</p>
       <button class="btn-sm" id="format-reset">還原預設</button>
+    </div>
+
+    <div class="field-sec">狀態列</div>
+    <div class="field">
+      <label>狀態列設定 <span class="tip">套用到所有角色，內容可自訂</span></label>
+      <textarea class="tall" id="f-status"></textarea>
+      <p class="note">這段會像「文字格式」一樣加在每個角色提示詞後面，用來要求模型在回覆裡輸出狀態欄。預設只是範例，可自行修改（存在這台瀏覽器）。</p>
+      <button class="btn-sm" id="status-reset">還原預設</button>
     </div>
 
     <div class="field-sec">備份與還原</div>
@@ -515,10 +533,29 @@ const DEFAULT_FORMAT=
 - 適時推進劇情、製造張力與轉折，不要原地打轉或一味等我下指令。
 - 保持角色一致，不要出戲，不要提及自己是 AI 或語言模型。`;
 
+const DEFAULT_STATUS=
+`# 狀態列（每則回覆結尾附上）
+在每則回覆的最後，另起一行輸出以下狀態欄，格式固定：
+──────────
+🕒 時間：（目前故事時間）
+📍 地點：（目前所在地點）
+🧥 當下服裝：（對方此刻的穿著）
+💗 好感度：（0–100 的數字）
+💭 內心想法：（對方此刻沒說出口的真實想法）
+📖 頁數：Page.（頁碼）
+──────────
+
+【好感度規則】
+- 依劇情合理增減，每則變動 ±1～5，不可無故暴衝或驟降。
+- 好感度達 80 以上，對方才會主動示好；未達則維持其性格分寸。
+
+【頁數規則】
+- 從 Page.1 開始，每則回覆遞增 1（上一則為 Page.n，這一則即為 Page.(n+1)）。`;
+
 /* ============ 狀態 ============ */
 let state={
-  apiKey:"",model:"gemini-2.5-flash",temperature:0.95,maxTokens:2048,
-  charName:DEFAULT_NAME,systemPrompt:DEFAULT_SYSTEM,opening:DEFAULT_OPENING,format:DEFAULT_FORMAT,
+  apiKey:"",model:"gemini-2.5-flash",temperature:0.95,maxTokens:2048,thinking:0,
+  charName:DEFAULT_NAME,systemPrompt:DEFAULT_SYSTEM,opening:DEFAULT_OPENING,format:DEFAULT_FORMAT,statusbar:DEFAULT_STATUS,
   messages:[],characters:[],activeId:null
 };
 let streaming=false,currentAbort=null,editingIndex=null;
@@ -544,6 +581,7 @@ function loadState(){
     if(o.model)state.model=o.model;
     if(o.temperature!=null)state.temperature=o.temperature;
     if(o.maxTokens!=null)state.maxTokens=o.maxTokens;
+    if(o.thinking!=null)state.thinking=o.thinking;
   }}catch{}
   try{const old=store.get("airp_messages");if(old!=null&&store.get(msgKey("default"))==null)store.set(msgKey("default"),old);}catch{}
 }
@@ -582,7 +620,7 @@ function saveSettings(){
   clearTimeout(saveTimer);
   saveTimer=setTimeout(()=>{
     store.set("airp_settings",JSON.stringify({
-      apiKey:state.apiKey,model:state.model,temperature:state.temperature,maxTokens:state.maxTokens
+      apiKey:state.apiKey,model:state.model,temperature:state.temperature,maxTokens:state.maxTokens,thinking:state.thinking
     }));
   },250);
 }
@@ -594,10 +632,13 @@ async function streamGemini(onChunk,signal){
   const contents=state.messages
     .filter(m=>m.text&&m.text.trim()!=="")
     .map(m=>({role:m.role==="user"?"user":"model",parts:[{text:m.text}]}));
-  const sysText=(state.charName?`角色名稱：${state.charName}\n`:"")+(state.systemPrompt||"")+(state.format&&state.format.trim()?"\n\n"+state.format:"");
+  const sysText=(state.charName?`角色名稱：${state.charName}\n`:"")+(state.systemPrompt||"")+(state.format&&state.format.trim()?"\n\n"+state.format:"")+(state.statusbar&&state.statusbar.trim()?"\n\n"+state.statusbar:"");
+  const gc={temperature:Number(state.temperature),maxOutputTokens:Number(state.maxTokens)};
+  const ml=state.model.trim().toLowerCase();
+  if(ml.includes("2.5")&&ml.includes("flash"))gc.thinkingConfig={thinkingBudget:Number(state.thinking)}; // 依使用者設定；0=關閉
   const body={
     contents,
-    generationConfig:{temperature:Number(state.temperature),maxOutputTokens:Number(state.maxTokens)},
+    generationConfig:gc,
     safetySettings:[
       {category:"HARM_CATEGORY_HARASSMENT",threshold:"BLOCK_NONE"},
       {category:"HARM_CATEGORY_HATE_SPEECH",threshold:"BLOCK_NONE"},
@@ -675,6 +716,8 @@ async function generate(){
         :finish==="MAX_TOKENS"?"（已達長度上限就被截斷，可調高回覆長度上限）"
         :finish?`（生成結束：${finish}）`:"（沒有收到內容，請重試）";
       state.messages[idx].text="…"+why;
+    }else if(finish==="MAX_TOKENS"){
+      toast("回覆達長度上限被截斷，可到設定調高『單則回覆長度上限』");
     }
   }catch(err){
     if(err&&err.name==="AbortError"){
@@ -785,12 +828,12 @@ function collectBackup(){
     for(let i=0;i<localStorage.length;i++){
       const k=localStorage.key(i);if(!k)continue;
       if(k==="airp_key")continue; // 不備份金鑰
-      if(k.startsWith("airp_msgs_")||k==="airp_format"||k==="airp_active")data[k]=localStorage.getItem(k);
+      if(k.startsWith("airp_msgs_")||k==="airp_format"||k==="airp_status"||k==="airp_active")data[k]=localStorage.getItem(k);
     }
   }catch{}
   if(Object.keys(data).length===0){ // 後備：localStorage 不可用時，從已載入角色取
     for(const c of state.characters){const v=store.get(msgKey(c.id));if(v!=null)data[msgKey(c.id)]=v;}
-    const f=store.get("airp_format");if(f!=null)data["airp_format"]=f;
+    const f=store.get("airp_format");if(f!=null)data["airp_format"]=f;const st=store.get("airp_status");if(st!=null)data["airp_status"]=st;
     const a=store.get("airp_active");if(a!=null)data["airp_active"]=a;
   }
   return data;
@@ -814,7 +857,7 @@ $("#restore-file").addEventListener("change",async e=>{
   try{payload=JSON.parse(await file.text());}catch{toast("檔案讀取失敗，格式不正確");return;}
   const data=payload&&payload.data;
   if(!payload||payload.app!=="kimmchii-airp"||!data||typeof data!=="object"){toast("這不是有效的對戲備份檔");return;}
-  const keys=Object.keys(data).filter(k=>k.startsWith("airp_msgs_")||k==="airp_format"||k==="airp_active");
+  const keys=Object.keys(data).filter(k=>k.startsWith("airp_msgs_")||k==="airp_format"||k==="airp_status"||k==="airp_active");
   if(!keys.length){toast("備份檔裡沒有可還原的對話");return;}
   if(!confirm("匯入會以備份檔的內容覆蓋對應角色的對話紀錄，確定要還原嗎？"))return;
   for(const k of keys){try{store.set(k,data[k]);}catch{}}
@@ -900,7 +943,7 @@ async function gsPull(){
     const p=await r.json();
     if(!p||p.app!=="kimmchii-airp"||!p.data){toast("雲端檔格式不符");return;}
     if(!confirm("從雲端下載會覆蓋這台裝置對應角色的對話，確定嗎？"))return;
-    const keys=Object.keys(p.data).filter(k=>k.startsWith("airp_msgs_")||k==="airp_format"||k==="airp_active");
+    const keys=Object.keys(p.data).filter(k=>k.startsWith("airp_msgs_")||k==="airp_format"||k==="airp_status"||k==="airp_active");
     for(const k of keys){try{store.set(k,p.data[k]);}catch{}}
     gsStatus("已下載，重新載入中…");setTimeout(()=>location.reload(),700);
   }catch(e){gsStatus("下載失敗："+(e.message||e));toast("下載失敗："+(e.message||e));}
@@ -933,7 +976,9 @@ function syncForm(){
   $("#f-model").value=state.model;
   $("#f-temp").value=state.temperature;$("#temp-val").textContent=Number(state.temperature).toFixed(2);
   $("#f-tokens").value=state.maxTokens;
+  $("#f-thinking").value=String(state.thinking);
 }
+function syncStatus(){$("#f-status").value=state.statusbar;}
 function syncFormat(){$("#f-format").value=state.format;}
 $("#f-key").addEventListener("input",e=>{state.apiKey=e.target.value;saveSettings();});
 $("#key-toggle").addEventListener("click",()=>{
@@ -942,6 +987,7 @@ $("#key-toggle").addEventListener("click",()=>{
 $("#f-model").addEventListener("input",e=>{state.model=e.target.value;saveSettings();});
 $("#f-temp").addEventListener("input",e=>{state.temperature=Number(e.target.value);$("#temp-val").textContent=state.temperature.toFixed(2);saveSettings();});
 $("#f-tokens").addEventListener("input",e=>{state.maxTokens=Math.max(64,Number(e.target.value)||2048);saveSettings();});
+$("#f-thinking").addEventListener("change",e=>{state.thinking=Number(e.target.value);saveSettings();});
 
 /* 共用書寫格式：預設來自 character/format.md，使用者可在設定裡覆蓋（存在本機） */
 let fmtTimer;
@@ -962,6 +1008,27 @@ $("#format-reset").addEventListener("click",async()=>{
   store.set("airp_format",state.format);
   syncFormat();
   toast("已還原共用書寫格式");
+});
+
+/* 狀態列：預設來自 DEFAULT_STATUS，使用者可在設定裡覆蓋（存在本機） */
+let statusTimer;
+function saveStatus(){clearTimeout(statusTimer);statusTimer=setTimeout(()=>store.set("airp_status",state.statusbar),250);}
+async function fetchDefaultStatus(){
+  try{const r=await fetch("character/status.md",{cache:"no-store"});if(r.ok){const t=await r.text();if(t.trim())return t;}}catch{}
+  return DEFAULT_STATUS;
+}
+async function loadStatus(){
+  const saved=store.get("airp_status");
+  if(saved!=null&&saved!=="null"){state.statusbar=saved;}
+  else{state.statusbar=await fetchDefaultStatus();}
+  syncStatus();
+}
+$("#f-status").addEventListener("input",e=>{state.statusbar=e.target.value;saveStatus();});
+$("#status-reset").addEventListener("click",async()=>{
+  state.statusbar=await fetchDefaultStatus();
+  store.set("airp_status",state.statusbar);
+  syncStatus();
+  toast("已還原狀態列預設");
 });
 
 /* ============ 選擇角色 / 角色卡 ============ */
@@ -1143,6 +1210,7 @@ $("#gate-leave").addEventListener("click",()=>{window.location.replace("https://
 loadState();
 syncForm();
 loadFormat();
+loadStatus();
 updateSendBtn();
 </script>
 </body>
