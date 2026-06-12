@@ -89,6 +89,8 @@ header{
 .sb-all{margin:8px 12px 16px;padding:10px;border:1px solid var(--border);border-radius:10px;background:transparent;color:var(--text-dim);font-size:.85rem;cursor:pointer;transition:border-color .18s,color .18s,background .18s;}
 .sb-all:hover{border-color:var(--accent);color:var(--text);background:rgba(25,195,154,.06);}
 .backup-row{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;}
+.check{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:.85rem;color:var(--text-dim);cursor:pointer;}
+.check input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;}
 
 /* ---- 對話區 ---- */
 main{flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;}
@@ -404,6 +406,20 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
       <input type="file" id="restore-file" accept="application/json,.json" hidden>
     </div>
 
+    <div class="field-sec">雲端同步（Google 雲端硬碟）</div>
+    <div class="field">
+      <label>OAuth Client ID <span class="tip">在 Google Cloud 取得後貼這裡</span></label>
+      <input type="text" id="f-gclient" placeholder="xxxx.apps.googleusercontent.com" autocomplete="off">
+      <p class="note">同步檔會存在你<strong>自己的</strong> Google 雲端硬碟一個隱藏的 App 專用資料夾，只有這個網站讀得到，不含金鑰。設定方式見下方說明。</p>
+      <div class="backup-row">
+        <button class="btn-sm" id="gs-connect">連結 Google</button>
+        <button class="btn-sm" id="gs-push">上傳到雲端</button>
+        <button class="btn-sm" id="gs-pull">從雲端下載</button>
+      </div>
+      <label class="check"><input type="checkbox" id="gs-auto"> 自動把變更上傳到雲端</label>
+      <p class="note" id="gs-status">狀態：未連結</p>
+    </div>
+
   </div>
 </aside>
 
@@ -570,7 +586,7 @@ function saveSettings(){
     }));
   },250);
 }
-function saveMessages(){if(state.activeId)store.set(msgKey(state.activeId),JSON.stringify(state.messages));}
+function saveMessages(){if(state.activeId)store.set(msgKey(state.activeId),JSON.stringify(state.messages));if(typeof scheduleCloudPush==="function")scheduleCloudPush();}
 
 /* ============ Gemini 串流呼叫 ============ */
 async function streamGemini(onChunk,signal){
@@ -805,6 +821,106 @@ $("#restore-file").addEventListener("change",async e=>{
   toast("已還原，正在重新載入…");
   setTimeout(()=>location.reload(),700);
 });
+
+/* ============ 雲端同步：Google 雲端硬碟（drive.appdata 隱藏資料夾） ============ */
+const GS_SCOPE="https://www.googleapis.com/auth/drive.appdata";
+const GS_FILE="airp-sync.json";
+const gsync={clientId:store.get("airp_gclient")||"",token:"",fileId:"",autoOn:store.get("airp_gauto")==="1",tokenClient:null,pushTimer:null};
+function gsStatus(t){const el=$("#gs-status");if(el)el.textContent="狀態："+t;}
+function loadGis(){
+  return new Promise((res,rej)=>{
+    if(window.google&&google.accounts&&google.accounts.oauth2)return res();
+    const s=document.createElement("script");
+    s.src="https://accounts.google.com/gsi/client";s.async=true;s.defer=true;
+    s.onload=()=>res();s.onerror=()=>rej(new Error("無法載入 Google 登入元件"));
+    document.head.appendChild(s);
+  });
+}
+async function gsGetToken(interactive){
+  await loadGis();
+  if(!gsync.clientId)throw new Error("尚未填入 Client ID");
+  return new Promise((res,rej)=>{
+    try{
+      gsync.tokenClient=google.accounts.oauth2.initTokenClient({
+        client_id:gsync.clientId,scope:GS_SCOPE,
+        callback:r=>{if(r&&r.access_token){gsync.token=r.access_token;res(r.access_token);}else rej(new Error("未取得授權"));},
+        error_callback:e=>rej(new Error(e&&e.type?e.type:"授權失敗"))
+      });
+      gsync.tokenClient.requestAccessToken({prompt:interactive?"consent":""});
+    }catch(e){rej(e);}
+  });
+}
+async function gsFetch(url,opts,retry){
+  opts=opts||{};opts.headers=Object.assign({Authorization:"Bearer "+gsync.token},opts.headers||{});
+  let r=await fetch(url,opts);
+  if(r.status===401&&retry!==false){await gsGetToken(true);return gsFetch(url,opts,false);}
+  return r;
+}
+async function gsFind(){
+  const q=encodeURIComponent(`name='${GS_FILE}'`);
+  const r=await gsFetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id,modifiedTime)`);
+  if(!r.ok)throw new Error("讀取雲端清單失敗");
+  const j=await r.json();return (j.files&&j.files[0])?j.files[0].id:"";
+}
+function gsPayload(){return {app:"kimmchii-airp",version:1,exportedAt:new Date().toISOString(),data:collectBackup()};}
+async function gsUpload(){
+  const body=JSON.stringify(gsPayload());
+  if(gsync.fileId){
+    const r=await gsFetch(`https://www.googleapis.com/upload/drive/v3/files/${gsync.fileId}?uploadType=media`,{method:"PATCH",headers:{"Content-Type":"application/json"},body});
+    if(!r.ok)throw new Error("上傳更新失敗");
+  }else{
+    const meta={name:GS_FILE,parents:["appDataFolder"]};
+    const b="airp"+Date.now();
+    const mp=`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${b}--`;
+    const r=await gsFetch(`https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id`,{method:"POST",headers:{"Content-Type":"multipart/related; boundary="+b},body:mp});
+    if(!r.ok)throw new Error("建立雲端檔失敗");
+    gsync.fileId=(await r.json()).id;
+  }
+}
+async function gsConnect(){
+  if(!gsync.clientId){toast("請先填入 OAuth Client ID");return;}
+  try{
+    gsStatus("連結中…");await gsGetToken(true);gsync.fileId=await gsFind();
+    if(gsync.fileId)gsStatus("已連結。雲端已有備份，可按『從雲端下載』取回，或『上傳到雲端』覆蓋。");
+    else{await gsUpload();gsStatus("已連結，並建立雲端備份。");}
+    toast("已連結 Google 雲端硬碟");
+  }catch(e){gsStatus("連結失敗："+(e.message||e));toast("連結失敗："+(e.message||e));}
+}
+async function gsPush(){
+  try{gsStatus("上傳中…");if(!gsync.token)await gsGetToken(true);if(!gsync.fileId)gsync.fileId=await gsFind();await gsUpload();
+    gsStatus("已上傳（"+new Date().toLocaleTimeString("zh-TW")+"）");toast("已上傳到雲端");}
+  catch(e){gsStatus("上傳失敗："+(e.message||e));toast("上傳失敗："+(e.message||e));}
+}
+async function gsPull(){
+  try{
+    if(!gsync.token)await gsGetToken(true);if(!gsync.fileId)gsync.fileId=await gsFind();
+    if(!gsync.fileId){toast("雲端還沒有備份");return;}
+    const r=await gsFetch(`https://www.googleapis.com/drive/v3/files/${gsync.fileId}?alt=media`);
+    if(!r.ok)throw new Error("下載失敗");
+    const p=await r.json();
+    if(!p||p.app!=="kimmchii-airp"||!p.data){toast("雲端檔格式不符");return;}
+    if(!confirm("從雲端下載會覆蓋這台裝置對應角色的對話，確定嗎？"))return;
+    const keys=Object.keys(p.data).filter(k=>k.startsWith("airp_msgs_")||k==="airp_format"||k==="airp_active");
+    for(const k of keys){try{store.set(k,p.data[k]);}catch{}}
+    gsStatus("已下載，重新載入中…");setTimeout(()=>location.reload(),700);
+  }catch(e){gsStatus("下載失敗："+(e.message||e));toast("下載失敗："+(e.message||e));}
+}
+function scheduleCloudPush(){
+  if(!gsync.autoOn||!gsync.clientId)return;
+  clearTimeout(gsync.pushTimer);
+  gsync.pushTimer=setTimeout(async()=>{
+    try{if(!gsync.token)await gsGetToken(false);if(!gsync.fileId)gsync.fileId=await gsFind();await gsUpload();
+      gsStatus("自動同步：已上傳（"+new Date().toLocaleTimeString("zh-TW")+"）");}catch(e){/* 靜默，下次再試 */}
+  },4000);
+}
+(function initGsync(){
+  const ci=$("#f-gclient");if(ci){ci.value=gsync.clientId;ci.addEventListener("input",e=>{gsync.clientId=e.target.value.trim();store.set("airp_gclient",gsync.clientId);gsync.token="";gsync.fileId="";});}
+  const a=$("#gs-auto");if(a){a.checked=gsync.autoOn;a.addEventListener("change",e=>{gsync.autoOn=e.target.checked;store.set("airp_gauto",gsync.autoOn?"1":"0");gsStatus(gsync.autoOn?"自動同步已開啟":"自動同步已關閉");});}
+  const c=$("#gs-connect");if(c)c.addEventListener("click",gsConnect);
+  const p=$("#gs-push");if(p)p.addEventListener("click",gsPush);
+  const d=$("#gs-pull");if(d)d.addEventListener("click",gsPull);
+  if(gsync.clientId)gsStatus(gsync.autoOn?"未連結（自動同步已開，連結後生效）":"未連結");
+})();
 function openDrawer(){$("#drawer").classList.add("show");$("#overlay").classList.add("show");}
 function closeDrawer(){$("#drawer").classList.remove("show");$("#overlay").classList.remove("show");}
 $("#btn-settings").addEventListener("click",openDrawer);
