@@ -298,7 +298,7 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
 .ci-start:hover{filter:brightness(1.08);}
 .ci-start:active{transform:translateY(1px);}
 @media(max-width:680px){.ci-grid{grid-template-columns:1fr;}.ci-left{position:relative;top:0;max-width:320px;margin:0 auto;width:100%;}.ci-portrait{max-width:300px;margin:0 auto;width:100%;}}
-.ci-docs{display:flex;gap:12px;justify-content:center;margin-top:34px;flex-wrap:wrap;}
+.ci-docs{display:flex;gap:12px;justify-content:flex-start;margin-top:26px;flex-wrap:wrap;}
 .ci-doc-btn{background:rgba(8,18,15,.5);border:1px solid var(--border);border-radius:11px;color:var(--text-dim);padding:10px 24px;font-size:.88rem;cursor:pointer;transition:border-color .18s,color .18s,background .18s;font-family:var(--sans);}
 .ci-doc-btn:hover{border-color:var(--accent);color:var(--text);background:rgba(25,195,154,.06);}
 .dv-body{white-space:pre-wrap;font-family:var(--serif);font-size:.95rem;line-height:1.85;color:var(--text-dim);max-height:62dvh;overflow-y:auto;margin-top:6px;word-break:break-word;}
@@ -516,11 +516,11 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
       <div class="ci-info">
         <h1 class="ci-name" id="ci-name"></h1>
         <div class="ci-bio" id="ci-bio"></div>
+        <div class="ci-docs">
+          <button class="ci-doc-btn" id="ci-main">主檔</button>
+          <button class="ci-doc-btn" id="ci-extra">次要讀取</button>
+        </div>
       </div>
-    </div>
-    <div class="ci-docs">
-      <button class="ci-doc-btn" id="ci-main">主檔</button>
-      <button class="ci-doc-btn" id="ci-extra">次要讀取</button>
     </div>
   </div>
 </div>
