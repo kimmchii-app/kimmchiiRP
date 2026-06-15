@@ -1429,9 +1429,10 @@ function toast(msg,undoFn){
 }
 function hideToast(){$("#toast").classList.remove("show");}
 
-/* ============ 年齡限制（成人內容入口；每次開啟都確認） ============ */
+/* ============ 年齡限制（每個瀏覽器分頁工作階段只確認一次） ============ */
 function passAgeGate(){
   $("#agegate").classList.add("hidden");
+  try{sessionStorage.setItem("airp_age_ok","1");}catch{}
   startChat();
 }
 async function startChat(){
@@ -1451,6 +1452,7 @@ async function startChat(){
 }
 $("#gate-enter").addEventListener("click",()=>{passAgeGate();});
 $("#gate-leave").addEventListener("click",()=>{window.location.replace("https://www.google.com");});
+try{if(sessionStorage.getItem("airp_age_ok")==="1"){passAgeGate();}}catch{}
 
 /* ============ 啟動 ============ */
 loadState();
