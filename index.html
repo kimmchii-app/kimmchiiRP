@@ -89,6 +89,20 @@ header{
 .sb-all{margin:8px 12px 16px;padding:10px;border:1px solid var(--border);border-radius:10px;background:transparent;color:var(--text-dim);font-size:.85rem;cursor:pointer;transition:border-color .18s,color .18s,background .18s;}
 .sb-all:hover{border-color:var(--accent);color:var(--text);background:rgba(25,195,154,.06);}
 .backup-row{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;}
+.sop{margin-top:8px;border:1px solid var(--border);border-radius:10px;background:rgba(8,18,15,.3);overflow:hidden;}
+.sop>summary{cursor:pointer;padding:11px 14px;font-size:.86rem;color:var(--accent-soft);font-family:var(--sans);list-style:none;user-select:none;}
+.sop>summary::-webkit-details-marker{display:none;}
+.sop>summary::before{content:"▸ ";color:var(--text-faint);margin-right:4px;transition:transform .15s;display:inline-block;}
+.sop[open]>summary::before{content:"▾ ";}
+.sop[open]>summary{border-bottom:1px solid var(--border-soft);}
+.sop-body{padding:14px 18px;font-size:.84rem;color:var(--text-dim);line-height:1.75;}
+.sop-body h4{font-family:var(--sans);font-size:.78rem;letter-spacing:.18em;color:var(--accent);margin:14px 0 6px;font-weight:600;}
+.sop-body h4:first-child{margin-top:0;}
+.sop-body ol{margin:4px 0 8px 18px;padding:0;}
+.sop-body ol li{margin:3px 0;}
+.sop-body code{background:rgba(25,195,154,.1);padding:1px 6px;border-radius:4px;font-size:.86em;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--text);}
+.sop-body a{color:var(--accent);}
+.sop-note{margin:6px 0;font-size:.82rem;color:var(--text-faint);line-height:1.7;}
 .check{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:.85rem;color:var(--text-dim);cursor:pointer;}
 .check input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;}
 
@@ -469,10 +483,10 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
       <button class="btn-sm" id="status-reset">還原預設</button>
     </div>
 
-    <div class="field-sec">備份與還原</div>
+    <div class="field-sec">備份與還原（推薦）</div>
     <div class="field">
       <label>對話紀錄備份 <span class="tip">換手機、換電腦時用</span></label>
-      <p class="note">對話只存在這台瀏覽器。把全部角色的紀錄匯出成一個檔案，到另一台裝置打開同一個網站、再匯入，就能接著聊。為安全起見，備份檔<strong>不含</strong>你的 API 金鑰。</p>
+      <p class="note">對話只存在這台瀏覽器。最簡單的方法就是把全部角色的紀錄匯出成一個檔案，到另一台裝置打開同一個網站、再匯入，就能接著聊。為安全起見，備份檔<strong>不含</strong>你的 API 金鑰。</p>
       <div class="backup-row">
         <button class="btn-sm" id="btn-backup">匯出備份檔</button>
         <button class="btn-sm" id="btn-restore">匯入備份檔</button>
@@ -480,11 +494,68 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
       <input type="file" id="restore-file" accept="application/json,.json" hidden>
     </div>
 
-    <div class="field-sec">雲端同步（Google 雲端硬碟）</div>
+    <div class="field-sec">雲端同步（Google 雲端硬碟，進階）</div>
     <div class="field">
-      <label>OAuth Client ID <span class="tip">在 Google Cloud 取得後貼這裡</span></label>
+      <p class="note">想跨裝置自動同步、不想手動搬備份檔的話，可自行到 Google Cloud 申請一組 OAuth Client ID，貼進下方欄位後就能用。同步檔會存在你<strong>自己的</strong> Google 雲端硬碟一個隱藏的 App 專用資料夾，只有這個網站讀得到，不含金鑰。</p>
+
+      <details class="sop">
+        <summary>第一次設定教學（點開展開）</summary>
+        <div class="sop-body">
+          <p class="sop-note"><strong>需要的是你的個人 Google 帳號</strong>，以下整套流程都用<strong>同一個</strong>帳號完成。免費、不需要信用卡。</p>
+
+          <h4>1. 建立 Google Cloud 專案</h4>
+          <ol>
+            <li>到 <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a> 用你的 Google 帳號登入。</li>
+            <li>最上方專案選單 → <strong>新增專案</strong> → 取個名字（例如 <code>airp-sync</code>） → 建立。</li>
+            <li>確認上方已切到這個新專案。</li>
+          </ol>
+
+          <h4>2. 啟用 Google Drive API</h4>
+          <ol>
+            <li>左側選單 → <strong>API 和服務</strong> → <strong>程式庫</strong>。</li>
+            <li>搜尋 <code>Google Drive API</code> → 點進去 → <strong>啟用</strong>。（另一個 Drive Activity API 不需要）</li>
+          </ol>
+
+          <h4>3. 設定同意畫面（Google Auth Platform）</h4>
+          <ol>
+            <li>左側 → <strong>API 和服務</strong> → <strong>Google Auth Platform</strong>。</li>
+            <li>按 <strong>Get started / 開始使用</strong>。</li>
+            <li>Branding：App 名稱填例如「對戲」；支援電子郵件選你的 Gmail。</li>
+            <li>Audience：User type 選 <strong>外部（External）</strong>。</li>
+            <li>聯絡 email 填你的信箱 → 完成。</li>
+          </ol>
+
+          <h4>4. 把自己加進測試使用者</h4>
+          <ol>
+            <li>「Google Auth Platform」→ <strong>Audience（對象）</strong> 分頁。</li>
+            <li>確認 Publishing status 是 <strong>Testing（測試）</strong>。</li>
+            <li>Test users → <strong>+ Add users</strong> → 填你<strong>要同步的那個 Gmail</strong>（之後各裝置都要登入它） → 儲存。</li>
+          </ol>
+
+          <h4>5. 建立 OAuth Client ID</h4>
+          <ol>
+            <li>「Google Auth Platform」→ <strong>Clients（用戶端）</strong> 分頁 → <strong>+ Create client</strong>。</li>
+            <li>Application type：選 <strong>網頁應用程式（Web application）</strong>。</li>
+            <li>名稱隨意（例如 <code>airp-web</code>）。</li>
+            <li><strong>Authorized JavaScript origins</strong>：點 <strong>Add URI</strong>，填你打開這個網站時看到的網址（協定 + 網域，例如 <code>https://kimmchii.net</code>，<strong>結尾不要有斜線</strong>）。</li>
+            <li><strong>Authorized redirect URIs</strong>：留空。</li>
+            <li>建立 → 會給你一組 Client ID（像 <code>xxxx.apps.googleusercontent.com</code>） → 複製。</li>
+          </ol>
+
+          <h4>6. 回到這裡使用</h4>
+          <ol>
+            <li>把 Client ID 貼進下方欄位。</li>
+            <li>第一台裝置：按 <strong>連結 Google</strong> → 跳到 Google 授權頁。因為是測試模式，會看到「未經驗證」警告 → 點 <strong>進階 → 繼續前往</strong> → 同意。</li>
+            <li>連結後按 <strong>上傳到雲端</strong> 建立第一份雲端備份；可勾選 <strong>自動把變更上傳到雲端</strong>。</li>
+            <li>另一台裝置：貼同一組 Client ID → 連結 Google（用<strong>同一個 Gmail</strong>） → 按 <strong>從雲端下載</strong> → 重新載入後接上原本的對話。</li>
+          </ol>
+
+          <p class="sop-note">Client ID 是公開資訊（不是密碼），但它<strong>綁定你在第 5 步填的網址</strong>，別人拿去別的網域也用不了，可以放心貼在這裡。記得各裝置的 Gemini 金鑰要各自填一次（同步不含金鑰）。</p>
+        </div>
+      </details>
+
+      <label style="margin-top:14px">OAuth Client ID</label>
       <input type="text" id="f-gclient" placeholder="xxxx.apps.googleusercontent.com" autocomplete="off">
-      <p class="note">同步檔會存在你<strong>自己的</strong> Google 雲端硬碟一個隱藏的 App 專用資料夾，只有這個網站讀得到，不含金鑰。設定方式見下方說明。</p>
       <div class="backup-row">
         <button class="btn-sm" id="gs-connect">連結 Google</button>
         <button class="btn-sm" id="gs-push">上傳到雲端</button>
