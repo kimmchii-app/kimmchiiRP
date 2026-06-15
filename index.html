@@ -134,6 +134,9 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;}
 .msg-ai .actions{margin-left:auto;}
 .msg-user .actions{position:absolute;top:-13px;right:8px;background:var(--bg-2);border:1px solid var(--border-soft);border-radius:8px;padding:2px;}
 .act{background:transparent;border:none;color:var(--text-faint);font-size:.74rem;padding:3px 7px;border-radius:6px;transition:color .15s, background .15s;}
+.act.cont{color:var(--accent);}
+.act.cont:hover{color:#fff;background:rgba(25,195,154,.16);}
+.trunc{color:var(--rose);}
 .act:hover{color:var(--text);background:rgba(25,195,154,.1);}
 .act.del:hover{color:var(--danger);background:rgba(224,129,122,.12);}
 
@@ -309,8 +312,8 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
 .cs-foot a:hover{color:var(--text-dim);text-decoration:underline;}
 
 /* ---- 角色編輯視窗 ---- */
-#chareditor,#persona,#docview{position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;padding:22px;}
-#chareditor.show,#persona.show,#docview.show{display:flex;}
+#chareditor,#persona,#docview,#ratelimit{position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;padding:22px;}
+#chareditor.show,#persona.show,#docview.show,#ratelimit.show{display:flex;}
 .ce-backdrop{position:absolute;inset:0;background:rgba(8,5,9,.66);backdrop-filter:blur(2px);}
 .ce-card{position:relative;z-index:1;width:min(520px,100%);max-height:88dvh;overflow-y:auto;background:var(--bg-2);border:1px solid var(--border);border-radius:18px;padding:28px;}
 .ce-card h2{font-family:var(--serif);font-weight:500;font-size:1.25rem;margin:0 0 6px;letter-spacing:.03em;}
@@ -525,6 +528,17 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
   </div>
 </div>
 
+<div id="ratelimit">
+  <div class="ce-backdrop" id="rl-backdrop"></div>
+  <div class="ce-card" style="max-width:460px">
+    <h2>暫時無法繼續回覆</h2>
+    <p class="note" style="margin-top:6px">目前模型：<span id="rl-model" style="color:var(--accent-soft);font-family:var(--sans)"></span></p>
+    <p class="note" id="rl-msg" style="margin-top:10px">已達 Gemini 免費額度或短時間請求過快（429）。稍等一下再試就好；如果你常常聊得很頻繁，可以考慮在 Google AI Studio 開通付費 Tier。</p>
+    <p class="note" id="rl-tip" style="margin-top:14px">小提醒：免費額度有每分鐘與每天兩種上限。短時間連發容易撞到「每分鐘」那條，稍候即可；若聊整天才撞到，就是「每天」上限了，要等隔天重置或升級方案。</p>
+    <div class="ce-btns"><span class="spacer"></span><button class="ce-cancel" id="rl-close">我知道了</button></div>
+  </div>
+</div>
+
 <div id="docview">
   <div class="ce-backdrop" id="dv-backdrop"></div>
   <div class="ce-card">
@@ -658,7 +672,7 @@ const DEFAULT_STATUS=
 
 /* ============ 狀態 ============ */
 let state={
-  apiKey:"",model:"gemini-2.5-flash",temperature:0.95,maxTokens:2048,thinking:0,
+  apiKey:"",model:"gemini-2.5-flash",temperature:0.95,maxTokens:4096,thinking:0,
   charName:DEFAULT_NAME,systemPrompt:DEFAULT_SYSTEM,opening:DEFAULT_OPENING,format:DEFAULT_FORMAT,statusbar:DEFAULT_STATUS,
   persona:{name:"",age:"",look:"",desc:""},
   messages:[],characters:[],activeId:null
@@ -766,7 +780,7 @@ async function streamGemini(onChunk,signal){
   if(!res.ok){
     let msg=`HTTP ${res.status}`;
     try{const e=await res.json();if(e.error&&e.error.message)msg=e.error.message;}catch{}
-    if(res.status===429)msg="已達免費額度或速率上限（429）。請稍後再試，或在 Google AI Studio 開通付費 Tier。\n"+msg;
+    if(res.status===429)msg=`__RATE_LIMIT__已達免費額度或速率上限（429）。請稍後再試，或在 Google AI Studio 開通付費 Tier。\n${msg}`;
     if(res.status===400&&/API key/i.test(msg))msg="金鑰無效，請到設定確認。\n"+msg;
     throw new Error(msg);
   }
@@ -810,13 +824,18 @@ async function send(){
   await generate();
 }
 
-async function generate(){
+async function generate(opts){
+  opts=opts||{};
   streaming=true;updateSendBtn();
-  state.messages.push({role:"model",text:""});
-  const idx=state.messages.length-1;
+  // 接續模式：不另開新泡泡，把生成內容接到原本被截斷的那則
+  const isCont=Number.isInteger(opts.continueFromIndex);
+  let idx;
+  if(isCont){idx=opts.continueFromIndex;}
+  else{state.messages.push({role:"model",text:""});idx=state.messages.length-1;}
   renderChat();
   const bodyEl=$(`.msg[data-i="${idx}"] .body`);
-  const stick=true;let acc="";
+  const stick=true;let acc=isCont?(state.messages[idx].text||""):"";
+  const baseLen=acc.length;
   currentAbort=new AbortController();
   try{
     const finish=await streamGemini(chunk=>{
@@ -825,19 +844,41 @@ async function generate(){
       if(stick&&nearBottom())scrollDown();
     },currentAbort.signal);
     state.messages[idx].text=acc;
+    state.messages[idx].truncated=(finish==="MAX_TOKENS");
+    const newlyAdded=acc.length-baseLen;
+    if(isCont&&newlyAdded<=0){
+      // 接續失敗：把剛才塞給模型的指令拿掉，恢復原樣
+      const last=state.messages[state.messages.length-1];
+      if(last&&last.role==="user"&&/接著寫下去/.test(last.text))state.messages.pop();
+      toast("這則接續沒生成新內容，請改用『重新生成』");
+    }else if(isCont){
+      // 接續成功：把剛才塞給模型的續寫指令拿掉，視覺上看起來就是同一則
+      for(let k=state.messages.length-1;k>idx;k--){
+        const m=state.messages[k];
+        if(m.role==="user"&&/接著寫下去/.test(m.text)){state.messages.splice(k,1);break;}
+      }
+    }
     if(!acc.trim()){
-      const why=finish==="SAFETY"?"（回覆被安全機制攔截，可調整劇情或降低敏感度後重試）"
-        :finish==="MAX_TOKENS"?"（已達長度上限就被截斷，可調高回覆長度上限）"
+      const why=finish==="SAFETY"?"（回覆被安全機制攔截，請調整劇情或換個切入點再試；重來不會改變結果）"
+        :finish==="MAX_TOKENS"?"（一字未生成就達上限，請到設定調高『單則回覆長度上限』或關閉思考）"
         :finish?`（生成結束：${finish}）`:"（沒有收到內容，請重試）";
       state.messages[idx].text="…"+why;
-    }else if(finish==="MAX_TOKENS"){
-      toast("回覆達長度上限被截斷，可到設定調高『單則回覆長度上限』");
+      state.messages[idx].truncated=false;
     }
   }catch(err){
     if(err&&err.name==="AbortError"){
       if(!acc.trim()){state.messages.splice(idx,1);}
     }else{
-      state.messages[idx].text=(acc?acc+"\n\n":"")+"⚠ 發生錯誤：\n"+(err&&err.message?err.message:String(err));
+      const raw=err&&err.message?err.message:String(err);
+      const isRate=raw.startsWith("__RATE_LIMIT__")||/\b429\b|quota|rate.?limit|exceeded/i.test(raw);
+      if(isRate){
+        if(!acc.trim()){state.messages.splice(idx,1);} // 拿掉空白回覆泡泡
+        const m=raw.match(/retry in ([\d.]+)\s*s/i);
+        const mm=raw.match(/model:\s*([\w.\-]+)/i);
+        showRateLimit(m?Math.ceil(parseFloat(m[1])):null,(mm?mm[1]:state.model)||state.model);
+      }else{
+        state.messages[idx].text=(acc?acc+"\n\n":"")+`⚠ 發生錯誤（模型：${state.model}）：\n`+raw;
+      }
     }
   }finally{
     streaming=false;currentAbort=null;updateSendBtn();
@@ -851,6 +892,16 @@ function regenerate(i){
   state.messages.splice(i,1);
   renderChat();
   generate();
+}
+
+async function continueGen(i){
+  if(streaming)return;
+  if(i!==state.messages.length-1||state.messages[i].role!=="model")return;
+  const target=state.messages[i];
+  // 為了讓模型「接下去寫」，先把使用者的續寫指令塞進歷史的最後一則 user
+  state.messages.push({role:"user",text:"請從你剛才被截斷的地方接著寫下去，不要重複前文、不要重述、也不要重新開頭，直接以該句的下一個字繼續，直到自然收尾並附上狀態欄。"});
+  renderChat();
+  await generate({continueFromIndex:i});
 }
 
 /* ============ 渲染 ============ */
@@ -877,14 +928,16 @@ function renderChat(){
         <div class="body">${renderBody(m.text,false)}</div></div></div>`;
     }else{
       const canRegen=(i===lastModel&&i===state.messages.length-1);
+      const canCont=(canRegen&&m.truncated);
       html+=`<div class="msg msg-ai" data-i="${i}"><div class="meta">
         <span class="name">${esc(state.charName||"對方")}</span>
         <span class="actions">
+        ${canCont?`<button class="act cont" data-act="cont" data-i="${i}">接續生成</button>`:""}
         ${canRegen?`<button class="act" data-act="regen" data-i="${i}">重新生成</button>`:""}
         <button class="act" data-act="edit" data-i="${i}">編輯</button>
         <button class="act del" data-act="del" data-i="${i}">刪除</button></span></div>
         <div class="body">${renderBody(m.text,false)}</div>
-        <div class="count">字數 ${charLen(m.text)}</div></div>`;
+        <div class="count">字數 ${charLen(m.text)}${m.truncated?'　<span class="trunc">· 被截斷</span>':""}</div></div>`;
     }
   });
   t.innerHTML=html;
@@ -911,6 +964,8 @@ $("#thread").addEventListener("click",e=>{
     editingIndex=null;renderChat();saveMessages();
   }else if(act==="regen"){
     regenerate(i);
+  }else if(act==="cont"){
+    continueGen(i);
   }
 });
 
@@ -1111,7 +1166,7 @@ $("#f-model-sel").addEventListener("change",e=>{
   else{state.model=v;$("#f-model").style.display="none";saveSettings();}
 });
 $("#f-temp").addEventListener("input",e=>{state.temperature=Number(e.target.value);$("#temp-val").textContent=state.temperature.toFixed(2);saveSettings();});
-$("#f-tokens").addEventListener("input",e=>{state.maxTokens=Math.max(64,Number(e.target.value)||2048);saveSettings();});
+$("#f-tokens").addEventListener("input",e=>{state.maxTokens=Math.max(64,Number(e.target.value)||4096);saveSettings();});
 $("#f-thinking").addEventListener("change",e=>{state.thinking=Number(e.target.value);saveSettings();});
 
 /* 我的角色（玩家角色）：套用到所有角色，存在本機並隨備份/雲端同步 */
@@ -1246,6 +1301,18 @@ $("#ci-extra").addEventListener("click",()=>{
 });
 $("#dv-close").addEventListener("click",closeDoc);
 $("#dv-backdrop").addEventListener("click",closeDoc);
+
+/* 429 / 額度耗盡彈窗 */
+function showRateLimit(retrySec,model){
+  $("#rl-model").textContent=model||state.model||"（未知）";
+  const tip=$("#rl-tip");
+  if(retrySec&&retrySec>0&&retrySec<300){tip.textContent=`Google 建議大約 ${retrySec} 秒後再試。`;}
+  else{tip.textContent="小提醒：免費額度有每分鐘與每天兩種上限。短時間連發容易撞到「每分鐘」那條，稍候即可；若聊整天才撞到，就是「每天」上限了，要等隔天重置或升級方案。";}
+  $("#ratelimit").classList.add("show");
+}
+function hideRateLimit(){$("#ratelimit").classList.remove("show");}
+$("#rl-close").addEventListener("click",hideRateLimit);
+$("#rl-backdrop").addEventListener("click",hideRateLimit);
 
 function activate(id){
   const c=state.characters.find(x=>x.id===id);if(!c)return;
