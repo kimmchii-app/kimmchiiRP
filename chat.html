@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="robots" content="noindex, nofollow">
-<title>對戲・AI 角色扮演</title>
+<title>對戲・聊天</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;600&family=Noto+Sans+TC:wght@400;500&display=swap" rel="stylesheet">
@@ -499,39 +499,6 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
 
 <div id="toast"><span id="toast-msg"></span><button id="toast-undo">復原</button></div>
 
-<div id="charselect">
-  <button class="iconbtn cs-menu" id="btn-menu-cs" aria-label="開啟角色側欄" title="對話中的角色">
-    <span></span><span></span><span></span>
-  </button>
-  <div class="cs-wrap">
-    <div class="cs-top"><span class="mark"></span><h1>選擇角色</h1></div>
-    <p class="cs-sub">挑一張角色卡開始對戲。每個角色都會各自記住自己的故事。</p>
-    <div class="cs-grid" id="cs-grid"></div>
-    <div class="cs-foot"><a href="terms.html" target="_blank" rel="noopener">使用條款與內容聲明</a></div>
-  </div>
-</div>
-
-<div id="charintro">
-  <div class="ci-bg" id="ci-bg"></div>
-  <div class="ci-wrap">
-    <button class="ci-back" id="ci-back">‹ 返回</button>
-    <div class="ci-grid">
-      <div class="ci-left">
-        <div class="ci-portrait" id="ci-portrait"></div>
-        <button class="ci-start" id="ci-start">開始聊天</button>
-      </div>
-      <div class="ci-info">
-        <h1 class="ci-name" id="ci-name"></h1>
-        <div class="ci-bio" id="ci-bio"></div>
-        <div class="ci-docs">
-          <button class="ci-doc-btn" id="ci-main">主檔</button>
-          <button class="ci-doc-btn" id="ci-extra">次要讀取</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
 <div id="ratelimit">
   <div class="ce-backdrop" id="rl-backdrop"></div>
   <div class="ce-card" style="max-width:460px">
@@ -684,7 +651,10 @@ let state={
 let streaming=false,currentAbort=null,editingIndex=null;
 
 /* ============ 工具 ============ */
-const $=(s,el=document)=>el.querySelector(s);
+const $=(s,el=document)=>{const n=el.querySelector(s);if(n)return n;
+  // chat.html 沒有選角/介紹用到的某些 DOM；給個無害 stub 讓殘留的 listener 註冊不會丟錯。
+  return new Proxy({},{get:(_,k)=>k==="addEventListener"||k==="removeEventListener"?(()=>{}):(typeof k==="string"&&(k==="value"||k==="textContent"||k==="innerHTML"))?"":undefined,set:()=>true});
+};
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function charLen(s){return [...(s||"")].length;}
 function renderBody(text,isStreaming){
@@ -1263,13 +1233,9 @@ function renderCharSelect(){
      </div>`;
   }).join("");
 }
-async function showSelection(){
-  $("#charselect").classList.add("show");
-  $("#cs-grid").innerHTML=`<div class="cs-loading">載入角色中…</div>`;
-  await loadCharacters();
-  renderCharSelect();
-}
-function hideSelection(){$("#charselect").classList.remove("show");}
+/* chat.html：選角與介紹由 index.html 負責 */
+function showSelection(){location.href="index.html";}
+function hideSelection(){}
 
 /* ---- 角色介紹頁 ---- */
 let introId=null;
@@ -1288,7 +1254,7 @@ function openIntro(id){
 }
 function closeIntro(){$("#charintro").classList.remove("show");introId=null;}
 $("#ci-back").addEventListener("click",closeIntro);
-$("#ci-start").addEventListener("click",()=>{const id=introId;if(!id)return;location.href="chat.html?id="+encodeURIComponent(id);});
+$("#ci-start").addEventListener("click",()=>{const id=introId;closeIntro();if(id)activate(id);});
 function curIntroChar(){return state.characters.find(x=>x.id===introId);}
 function openDoc(title,html){$("#dv-title").textContent=title;$("#dv-body").innerHTML=html;$("#dv-body").scrollTop=0;$("#docview").classList.add("show");}
 function closeDoc(){$("#docview").classList.remove("show");}
@@ -1390,7 +1356,7 @@ $("#ce-del").addEventListener("click",()=>{
 
 $("#btn-chars").addEventListener("click",()=>{
   if(streaming){toast("生成中，請先停止");return;}
-  showSelection();
+  location.href="index.html";
 });
 
 /* ============ 左側對話側欄 ============ */
@@ -1425,11 +1391,15 @@ function renderSidebar(){
 $("#btn-menu").addEventListener("click",openSidebar);
 $("#btn-menu-cs").addEventListener("click",openSidebar);
 $("#sidebar-close").addEventListener("click",closeSidebar);
-$("#sb-all").addEventListener("click",()=>{closeSidebar();if(streaming){toast("生成中，請先停止");return;}showSelection();});
+$("#sb-all").addEventListener("click",()=>{closeSidebar();if(streaming){toast("生成中，請先停止");return;}location.href="index.html";});
 $("#sb-body").addEventListener("click",e=>{
   const it=e.target.closest(".sb-item");if(!it)return;
+  if(streaming){toast("生成中，請先停止");return;}
+  const id=it.dataset.id;
   closeSidebar();
-  location.href="chat.html?id="+encodeURIComponent(it.dataset.id);
+  // 若就是目前在聊的角色，無需跳頁
+  if(id===state.activeId)return;
+  location.href="chat.html?id="+encodeURIComponent(id);
 });
 
 /* ============ 輸入列 ============ */
@@ -1462,7 +1432,22 @@ function hideToast(){$("#toast").classList.remove("show");}
 /* ============ 年齡限制（成人內容入口；每次開啟都確認） ============ */
 function passAgeGate(){
   $("#agegate").classList.add("hidden");
-  showSelection();
+  startChat();
+}
+async function startChat(){
+  // 從網址讀角色 id；沒有 id 就回到選角頁
+  const params=new URLSearchParams(location.search);
+  const id=params.get("id");
+  if(!id){location.replace("index.html");return;}
+  await loadCharacters();
+  if(!state.characters.find(x=>x.id===id)){
+    // 找不到該角色，回選角頁
+    location.replace("index.html");return;
+  }
+  // 更新瀏覽器分頁標題
+  const c=state.characters.find(x=>x.id===id);
+  document.title="對戲・"+(c&&c.name?c.name:"聊天");
+  activate(id);
 }
 $("#gate-enter").addEventListener("click",()=>{passAgeGate();});
 $("#gate-leave").addEventListener("click",()=>{window.location.replace("https://www.google.com");});
