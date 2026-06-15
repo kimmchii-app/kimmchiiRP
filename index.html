@@ -260,7 +260,7 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
 .cs-top .mark{width:9px;height:9px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--accent-soft),var(--rose-deep));box-shadow:0 0 14px rgba(25,195,154,.45);}
 .cs-top h1{font-family:var(--serif);font-weight:500;font-size:1.7rem;letter-spacing:.04em;margin:0;}
 .cs-sub{color:var(--text-dim);font-size:.92rem;margin:0 0 30px;letter-spacing:.02em;}
-.cs-menu{position:absolute;top:clamp(20px,4vh,30px);left:clamp(18px,3vw,30px);z-index:2;}
+.cs-menu{position:fixed;top:clamp(20px,4vh,30px);left:clamp(18px,3vw,30px);z-index:105;}
 .cs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:18px;}
 .card{position:relative;min-height:230px;border:1px solid var(--border);border-radius:16px;padding:18px;cursor:pointer;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;background:linear-gradient(to bottom,var(--surface),var(--bg-2));background-size:cover;background-position:center;transition:transform .16s,border-color .16s,box-shadow .16s;}
 .card:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 12px 30px rgba(0,0,0,.42);}
