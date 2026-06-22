@@ -211,6 +211,9 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;}
 .act.cont{color:var(--accent);}
 .act.cont:hover{color:#fff;background:rgba(var(--accent-rgb),.16);}
 .trunc{color:var(--rose);}
+.blocked{color:var(--danger);cursor:help;}
+.other-fin{color:var(--text-faint);cursor:help;}
+.trunc{cursor:help;}
 .act:hover{color:var(--text);background:rgba(var(--accent-rgb),.1);}
 .act.del:hover{color:var(--danger);background:rgba(var(--danger-rgb),.12);}
 
@@ -779,6 +782,7 @@ let state={
   messages:[],characters:[],activeId:null
 };
 let streaming=false,currentAbort=null,editingIndex=null;
+let lastUsage=null; // 最近一次 API 回覆的 token 用量（usageMetadata）
 
 /* ============ 工具 ============ */
 const $=(s,el=document)=>{const n=el.querySelector(s);if(n)return n;
@@ -854,6 +858,21 @@ function saveSettings(){
 function saveMessages(){if(state.activeId)store.set(msgKey(state.activeId),JSON.stringify(state.messages));if(typeof scheduleCloudPush==="function")scheduleCloudPush();}
 
 /* ============ Gemini 串流呼叫 ============ */
+// 把 Gemini 的 finishReason 翻成人話，方便判斷截斷原因
+function finishReasonInfo(reason){
+  switch(reason){
+    case "STOP":             return {kind:"ok",   short:"正常結束",   desc:"模型自然講完，沒有被截斷。"};
+    case "MAX_TOKENS":       return {kind:"limit",short:"長度上限",   desc:"達到「單則回覆長度上限」被切斷（可能含思考額度）。可調高上限或關閉思考，或用「接著寫下去」續寫。"};
+    case "SAFETY":           return {kind:"block",short:"安全審查",   desc:"內容被 Gemini 安全機制攔截。換個切入點或調整劇情再試；重新生成通常不會改變結果。"};
+    case "RECITATION":       return {kind:"block",short:"重複/版權",  desc:"觸發了重複內容（疑似版權）偵測而停止。換個寫法或避免大段照抄既有文本。"};
+    case "PROHIBITED_CONTENT":return{kind:"block",short:"違禁內容",   desc:"內容被判定為違禁而中止。需調整劇情方向。"};
+    case "BLOCKLIST":        return {kind:"block",short:"詞彙封鎖",   desc:"命中封鎖詞清單而停止。"};
+    case "SPII":             return {kind:"block",short:"敏感個資",   desc:"偵測到敏感個人資訊而停止。"};
+    case "OTHER":            return {kind:"other",short:"其他原因",   desc:"模型因未明原因停止，可重試。"};
+    case null: case undefined: case "": return {kind:"other",short:"無回應",desc:"沒有收到結束原因，可能是連線中斷，可重試。"};
+    default:                 return {kind:"other",short:reason,        desc:"生成結束代碼："+reason};
+  }
+}
 async function streamGemini(onChunk,signal){
   const url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(state.model.trim())}:streamGenerateContent?alt=sse&key=${encodeURIComponent(state.apiKey.trim())}`;
   const contents=state.messages
@@ -912,14 +931,16 @@ async function streamGemini(onChunk,signal){
       if(data.usageMetadata)usage=data.usageMetadata;
     }
   }
-  // 截斷時印出 token 用量,方便排查思考是否吃掉額度
-  if(finish==="MAX_TOKENS"&&usage){
-    console.warn("[截斷] MAX_TOKENS",
-      "｜輸入:",usage.promptTokenCount,
-      "｜輸出:",usage.candidatesTokenCount,
-      "｜思考:",usage.thoughtsTokenCount||0,
-      "｜總計:",usage.totalTokenCount);
+  // 非正常結束時印出原因與 token 用量，方便排查
+  if(finish&&finish!=="STOP"){
+    const info=finishReasonInfo(finish);
+    console.warn("[結束] "+finish+"（"+info.short+"）"+(usage?
+      "｜輸入:"+usage.promptTokenCount+
+      "｜輸出:"+usage.candidatesTokenCount+
+      "｜思考:"+(usage.thoughtsTokenCount||0)+
+      "｜總計:"+usage.totalTokenCount : ""));
   }
+  lastUsage=usage;
   return finish;
 }
 
@@ -958,6 +979,8 @@ async function generate(opts){
     },currentAbort.signal);
     state.messages[idx].text=acc;
     state.messages[idx].truncated=(finish==="MAX_TOKENS");
+    state.messages[idx].finish=finish||null; // 記錄結束原因，供畫面反查
+    if(lastUsage)state.messages[idx].usage={p:lastUsage.promptTokenCount,c:lastUsage.candidatesTokenCount,t:lastUsage.thoughtsTokenCount||0,total:lastUsage.totalTokenCount};
     const newlyAdded=acc.length-baseLen;
     if(isCont&&newlyAdded<=0){
       // 接續失敗：把剛才塞給模型的指令拿掉，恢復原樣
@@ -972,10 +995,8 @@ async function generate(opts){
       }
     }
     if(!acc.trim()){
-      const why=finish==="SAFETY"?"（回覆被安全機制攔截，請調整劇情或換個切入點再試；重來不會改變結果）"
-        :finish==="MAX_TOKENS"?"（一字未生成就達上限，請到設定調高『單則回覆長度上限』或關閉思考）"
-        :finish?`（生成結束：${finish}）`:"（沒有收到內容，請重試）";
-      state.messages[idx].text="…"+why;
+      const info=finishReasonInfo(finish);
+      state.messages[idx].text="…（"+info.short+"）"+info.desc;
       state.messages[idx].truncated=false;
     }
   }catch(err){
@@ -1050,7 +1071,13 @@ function renderChat(){
         <button class="act" data-act="edit" data-i="${i}">編輯</button>
         <button class="act del" data-act="del" data-i="${i}">刪除</button></span></div>
         <div class="body">${renderBody(m.text,false)}</div>
-        <div class="count">字數 ${charLen(m.text)}${m.truncated?'　<span class="trunc">· 被截斷</span>':""}</div></div>`;
+        <div class="count">字數 ${charLen(m.text)}${(()=>{
+          if(!m.finish||m.finish==="STOP")return "";
+          const info=finishReasonInfo(m.finish);
+          const cls=info.kind==="limit"?"trunc":(info.kind==="block"?"blocked":"other-fin");
+          const u=m.usage?` ｜token 輸入${m.usage.p}/輸出${m.usage.c}/思考${m.usage.t}`:"";
+          return `　<span class="${cls}" title="${esc(info.desc)}${esc(u)}">· ${esc(info.short)}</span>`;
+        })()}</div></div>`;
     }
   });
   t.innerHTML=html;
