@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="robots" content="noindex, nofollow">
-<title>對戲・聊天</title>
+<title>對戲・角色庫</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;600&family=Noto+Sans+TC:wght@400;500&display=swap" rel="stylesheet">
@@ -75,7 +75,7 @@ header{
 .iconbtn:hover{border-color:var(--accent);background:rgba(25,195,154,.06);}
 .iconbtn span{display:block;height:2px;border-radius:2px;background:var(--text-dim);transition:background .18s;}
 .iconbtn:hover span{background:var(--text);}
-#sidebar{position:fixed;top:0;left:0;height:100dvh;width:min(320px,86vw);z-index:50;background:var(--bg-2);border-right:1px solid var(--border);transform:translateX(-100%);transition:transform .3s cubic-bezier(.3,.8,.3,1);display:flex;flex-direction:column;}
+#sidebar{position:fixed;top:0;left:0;height:100dvh;width:min(320px,86vw);z-index:115;background:var(--bg-2);border-right:1px solid var(--border);transform:translateX(-100%);transition:transform .3s cubic-bezier(.3,.8,.3,1);display:flex;flex-direction:column;}
 #sidebar.show{transform:none;}
 .sb-body{flex:1;overflow-y:auto;padding:10px 12px;}
 .sb-item{display:flex;align-items:center;gap:11px;width:100%;text-align:left;padding:10px 11px;border-radius:11px;border:1px solid transparent;background:transparent;cursor:pointer;transition:background .16s,border-color .16s;margin-bottom:4px;}
@@ -194,10 +194,10 @@ footer{flex:0 0 auto;border-top:1px solid var(--border-soft);background:linear-g
 .compose-btn:hover{border-color:var(--accent);color:var(--text);}
 
 /* ---- 抽屜（設定） ---- */
-#overlay{position:fixed;inset:0;background:rgba(8,5,9,.6);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .25s;z-index:40;}
+#overlay{position:fixed;inset:0;background:rgba(8,5,9,.6);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .25s;z-index:110;}
 #overlay.show{opacity:1;pointer-events:auto;}
 #drawer{
-  position:fixed;top:0;right:0;height:100dvh;width:min(440px,100vw);z-index:50;
+  position:fixed;top:0;right:0;height:100dvh;width:min(440px,100vw);z-index:115;
   background:var(--bg-2);border-left:1px solid var(--border);
   transform:translateX(100%);transition:transform .3s cubic-bezier(.3,.8,.3,1);
   display:flex;flex-direction:column;
@@ -339,7 +339,7 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
 .ce-del:hover{border-color:var(--danger);color:var(--danger);}
 .ce-cancel{color:var(--text-dim);}
 .ce-cancel:hover{color:var(--text);border-color:var(--text-faint);}
-#ce-save,#p-save{padding:9px 22px;}
+#ce-save{padding:9px 22px;}
 
 /* ---- 年齡確認入口 ---- */
 #agegate{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;
@@ -379,7 +379,6 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
 
   <footer>
     <div class="composer">
-      <button class="compose-btn" id="btn-persona" title="我的角色" aria-label="我的角色">✎</button>
       <textarea id="input" rows="1" placeholder="寫下你的行動或對白…（Enter 送出，Shift+Enter 換行）"></textarea>
       <button class="send" id="btn-send">送出</button>
     </div>
@@ -570,6 +569,39 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
 
 <div id="toast"><span id="toast-msg"></span><button id="toast-undo">復原</button></div>
 
+<div id="charselect">
+  <button class="iconbtn cs-menu" id="btn-menu-cs" aria-label="開啟角色側欄" title="對話中的角色">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="cs-wrap">
+    <div class="cs-top"><span class="mark"></span><h1>選擇角色</h1></div>
+    <p class="cs-sub">挑一張角色卡開始對戲。每個角色都會各自記住自己的故事。</p>
+    <div class="cs-grid" id="cs-grid"></div>
+    <div class="cs-foot"><a href="index.html">← 回首頁</a><span style="margin:0 10px;color:var(--text-faint)">·</span><a href="terms.html" target="_blank" rel="noopener">使用條款與內容聲明</a></div>
+  </div>
+</div>
+
+<div id="charintro">
+  <div class="ci-bg" id="ci-bg"></div>
+  <div class="ci-wrap">
+    <button class="ci-back" id="ci-back">‹ 返回</button>
+    <div class="ci-grid">
+      <div class="ci-left">
+        <div class="ci-portrait" id="ci-portrait"></div>
+        <button class="ci-start" id="ci-start">開始聊天</button>
+      </div>
+      <div class="ci-info">
+        <h1 class="ci-name" id="ci-name"></h1>
+        <div class="ci-bio" id="ci-bio"></div>
+        <div class="ci-docs">
+          <button class="ci-doc-btn" id="ci-main">主檔</button>
+          <button class="ci-doc-btn" id="ci-extra">次要讀取</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="ratelimit">
   <div class="ce-backdrop" id="rl-backdrop"></div>
   <div class="ce-card" style="max-width:460px">
@@ -605,28 +637,6 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
       <span class="spacer"></span>
       <button class="ce-cancel" id="ce-cancel">取消</button>
       <button class="btn-sm" id="ce-save">儲存</button>
-    </div>
-  </div>
-</div>
-
-<div id="persona">
-  <div class="ce-backdrop" id="persona-backdrop"></div>
-  <div class="ce-card">
-    <h2>我的角色</h2>
-    <p class="note" style="margin-top:0">這裡填你扮演的角色（故事裡的「你／我」）。這份資料會提供給 AI，讓它知道你是誰、長什麼樣子；但 AI 仍不會替你決定行動。套用到所有角色。</p>
-    <label>名字</label>
-    <input type="text" id="p-name" placeholder="你的角色名字">
-    <label>年齡</label>
-    <input type="text" id="p-age" placeholder="例如：26">
-    <label>外觀</label>
-    <textarea class="mid" id="p-look" placeholder="髮色、身形、穿著、氣質…"></textarea>
-    <label>描述 <span class="tip">身分、性格、背景，可留空</span></label>
-    <textarea class="tall" id="p-desc" placeholder="你的角色的身分、個性、與這個世界的關係…"></textarea>
-    <div class="ce-btns">
-      <button class="ce-del" id="p-clear">清空</button>
-      <span class="spacer"></span>
-      <button class="ce-cancel" id="p-cancel">取消</button>
-      <button class="btn-sm" id="p-save">儲存</button>
     </div>
   </div>
 </div>
@@ -696,7 +706,7 @@ const DEFAULT_STATUS=
 
 /* ============ 狀態 ============ */
 let state={
-  apiKey:"",model:"gemini-2.5-flash",temperature:0.95,maxTokens:8192,thinking:0,
+  apiKey:"",model:"gemini-2.5-flash",temperature:0.95,maxTokens:4096,thinking:0,
   charName:DEFAULT_NAME,systemPrompt:DEFAULT_SYSTEM,opening:DEFAULT_OPENING,format:DEFAULT_FORMAT,statusbar:DEFAULT_STATUS,
   persona:{name:"",age:"",look:"",desc:""},
   messages:[],characters:[],activeId:null
@@ -704,10 +714,7 @@ let state={
 let streaming=false,currentAbort=null,editingIndex=null;
 
 /* ============ 工具 ============ */
-const $=(s,el=document)=>{const n=el.querySelector(s);if(n)return n;
-  // chat.html 沒有選角/介紹用到的某些 DOM；給個無害 stub 讓殘留的 listener 註冊不會丟錯。
-  return new Proxy({},{get:(_,k)=>k==="addEventListener"||k==="removeEventListener"?(()=>{}):(typeof k==="string"&&(k==="value"||k==="textContent"||k==="innerHTML"))?"":undefined,set:()=>true});
-};
+const $=(s,el=document)=>el.querySelector(s);
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function charLen(s){return [...(s||"")].length;}
 function renderBody(text,isStreaming){
@@ -762,7 +769,7 @@ async function loadCharacters(){
     if(list.length){state.characters=list;return;}
     throw 0;
   }catch{
-    state.characters=[]; // 讀不到角色：保持空陣列（startChat 會跳回 characters.html）
+    state.characters=[]; // 讀不到角色：保持空陣列，由 renderCharSelect 顯示提示
   }
 }
 let saveTimer;
@@ -813,7 +820,7 @@ async function streamGemini(onChunk,signal){
   }
   const reader=res.body.getReader();
   const dec=new TextDecoder();
-  let buf="",finish=null,usage=null;
+  let buf="",finish=null;
   while(true){
     const{done,value}=await reader.read();
     if(done)break;
@@ -832,16 +839,7 @@ async function streamGemini(onChunk,signal){
         if(parts)for(const p of parts)if(p.text)onChunk(p.text);
         if(cand.finishReason)finish=cand.finishReason;
       }
-      if(data.usageMetadata)usage=data.usageMetadata;
     }
-  }
-  // 截斷時印出 token 用量,方便排查思考是否吃掉額度
-  if(finish==="MAX_TOKENS"&&usage){
-    console.warn("[截斷] MAX_TOKENS",
-      "｜輸入:",usage.promptTokenCount,
-      "｜輸出:",usage.candidatesTokenCount,
-      "｜思考:",usage.thoughtsTokenCount||0,
-      "｜總計:",usage.totalTokenCount);
   }
   return finish;
 }
@@ -1037,7 +1035,7 @@ function collectBackup(){
     }
   }catch{}
   if(Object.keys(data).length===0){ // 後備：localStorage 不可用時，從已載入角色取
-    for(const c of state.characters){const v=store.get(msgKey(c.id));if(v!=null)data[msgKey(c.id)]=v;const pv=store.get(personaKey(c.id));if(pv!=null)data[personaKey(c.id)]=pv;}
+    for(const c of state.characters){const v=store.get(msgKey(c.id));if(v!=null)data[msgKey(c.id)]=v;const pv=store.get("airp_persona_"+c.id);if(pv!=null)data["airp_persona_"+c.id]=pv;}
     const f=store.get("airp_format");if(f!=null)data["airp_format"]=f;const st=store.get("airp_status");if(st!=null)data["airp_status"]=st;const pe=store.get("airp_persona");if(pe!=null)data["airp_persona"]=pe;
     const a=store.get("airp_active");if(a!=null)data["airp_active"]=a;
   }
@@ -1212,31 +1210,10 @@ function personaBlock(){
   if(!lines.length)return "";
   return "\n\n【使用者扮演的角色（故事中的「你」）】\n"+lines.join("\n")+"\n（依此理解使用者角色的身分與外觀；但仍不要替使用者決定其行動、心理或台詞。）";
 }
-function personaKey(id){return "airp_persona_"+(id||state.activeId||"default");}
 function loadPersona(){
-  // 依目前角色讀取各自的「我的角色」；沒有就空白
+  // 選角頁不在此設定「我的角色」；persona 改在各角色的聊天室（chat.html）裡依角色獨立設定。
   state.persona={name:"",age:"",look:"",desc:""};
-  try{const s=store.get(personaKey(state.activeId));if(s){const o=JSON.parse(s);state.persona={name:o.name||"",age:o.age||"",look:o.look||"",desc:o.desc||""};}}catch{}
 }
-function openPersona(){
-  const p=state.persona||{};
-  $("#p-name").value=p.name||"";$("#p-age").value=p.age||"";$("#p-look").value=p.look||"";$("#p-desc").value=p.desc||"";
-  $("#persona").classList.add("show");
-}
-function closePersona(){$("#persona").classList.remove("show");}
-$("#btn-persona").addEventListener("click",openPersona);
-$("#p-cancel").addEventListener("click",closePersona);
-$("#persona-backdrop").addEventListener("click",closePersona);
-$("#p-clear").addEventListener("click",()=>{
-  $("#p-name").value="";$("#p-age").value="";$("#p-look").value="";$("#p-desc").value="";
-});
-$("#p-save").addEventListener("click",()=>{
-  state.persona={name:$("#p-name").value.trim(),age:$("#p-age").value.trim(),look:$("#p-look").value.trim(),desc:$("#p-desc").value.trim()};
-  store.set(personaKey(state.activeId),JSON.stringify(state.persona));
-  if(typeof scheduleCloudPush==="function")scheduleCloudPush();
-  closePersona();
-  toast("已儲存我的角色");
-});
 
 /* 共用書寫格式：預設來自 character/format.md，使用者可在設定裡覆蓋（存在本機） */
 let fmtTimer;
@@ -1299,9 +1276,13 @@ function renderCharSelect(){
      </div>`;
   }).join("");
 }
-/* chat.html：選角與介紹由 characters.html 負責 */
-function showSelection(){location.href="characters.html";}
-function hideSelection(){}
+async function showSelection(){
+  $("#charselect").classList.add("show");
+  $("#cs-grid").innerHTML=`<div class="cs-loading">載入角色中…</div>`;
+  await loadCharacters();
+  renderCharSelect();
+}
+function hideSelection(){$("#charselect").classList.remove("show");}
 
 /* ---- 角色介紹頁 ---- */
 let introId=null;
@@ -1320,7 +1301,7 @@ function openIntro(id){
 }
 function closeIntro(){$("#charintro").classList.remove("show");introId=null;}
 $("#ci-back").addEventListener("click",closeIntro);
-$("#ci-start").addEventListener("click",()=>{const id=introId;closeIntro();if(id)activate(id);});
+$("#ci-start").addEventListener("click",()=>{const id=introId;if(!id)return;location.href="chat.html?id="+encodeURIComponent(id);});
 function curIntroChar(){return state.characters.find(x=>x.id===introId);}
 function openDoc(title,html){$("#dv-title").textContent=title;$("#dv-body").innerHTML=html;$("#dv-body").scrollTop=0;$("#docview").classList.add("show");}
 function closeDoc(){$("#docview").classList.remove("show");}
@@ -1354,7 +1335,6 @@ function activate(id){
   const c=state.characters.find(x=>x.id===id);if(!c)return;
   state.activeId=id;store.set("airp_active",id);
   state.charName=c.name;state.systemPrompt=c.system;state.opening=c.opening;
-  loadPersona();
   const raw=store.get(msgKey(id));
   if(raw!=null){try{state.messages=JSON.parse(raw)||[];}catch{state.messages=[];}}
   else{state.messages=c.opening&&c.opening.trim()?[{role:"model",text:c.opening}]:[];}
@@ -1423,7 +1403,7 @@ $("#ce-del").addEventListener("click",()=>{
 
 $("#btn-chars").addEventListener("click",()=>{
   if(streaming){toast("生成中，請先停止");return;}
-  location.href="characters.html";
+  showSelection();
 });
 
 /* ============ 左側對話側欄 ============ */
@@ -1458,15 +1438,11 @@ function renderSidebar(){
 $("#btn-menu").addEventListener("click",openSidebar);
 $("#btn-menu-cs").addEventListener("click",openSidebar);
 $("#sidebar-close").addEventListener("click",closeSidebar);
-$("#sb-all").addEventListener("click",()=>{closeSidebar();if(streaming){toast("生成中，請先停止");return;}location.href="characters.html";});
+$("#sb-all").addEventListener("click",()=>{closeSidebar();if(streaming){toast("生成中，請先停止");return;}showSelection();});
 $("#sb-body").addEventListener("click",e=>{
   const it=e.target.closest(".sb-item");if(!it)return;
-  if(streaming){toast("生成中，請先停止");return;}
-  const id=it.dataset.id;
   closeSidebar();
-  // 若就是目前在聊的角色，無需跳頁
-  if(id===state.activeId)return;
-  location.href="chat.html?id="+encodeURIComponent(id);
+  location.href="chat.html?id="+encodeURIComponent(it.dataset.id);
 });
 
 /* ============ 輸入列 ============ */
@@ -1500,22 +1476,7 @@ function hideToast(){$("#toast").classList.remove("show");}
 function passAgeGate(){
   $("#agegate").classList.add("hidden");
   try{sessionStorage.setItem("airp_age_ok","1");}catch{}
-  startChat();
-}
-async function startChat(){
-  // 從網址讀角色 id；沒有 id 就回到選角頁
-  const params=new URLSearchParams(location.search);
-  const id=params.get("id");
-  if(!id){location.replace("characters.html");return;}
-  await loadCharacters();
-  if(!state.characters.find(x=>x.id===id)){
-    // 找不到該角色，回選角頁
-    location.replace("characters.html");return;
-  }
-  // 更新瀏覽器分頁標題
-  const c=state.characters.find(x=>x.id===id);
-  document.title="對戲・"+(c&&c.name?c.name:"聊天");
-  activate(id);
+  showSelection();
 }
 $("#gate-enter").addEventListener("click",()=>{passAgeGate();});
 $("#gate-leave").addEventListener("click",()=>{window.location.replace("https://www.google.com");});

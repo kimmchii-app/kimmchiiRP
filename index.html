@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="robots" content="noindex, nofollow">
-<title>對戲・AI 角色扮演</title>
+<title>對戲・首頁</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;600&family=Noto+Sans+TC:wght@400;500&display=swap" rel="stylesheet">
@@ -339,7 +339,7 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
 .ce-del:hover{border-color:var(--danger);color:var(--danger);}
 .ce-cancel{color:var(--text-dim);}
 .ce-cancel:hover{color:var(--text);border-color:var(--text-faint);}
-#ce-save,#p-save{padding:9px 22px;}
+#ce-save{padding:9px 22px;}
 
 /* ---- 年齡確認入口 ---- */
 #agegate{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;
@@ -358,35 +358,61 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
 .gate-foot{font-size:.76rem;color:var(--text-faint);margin-top:18px;line-height:1.6;}
 .gate-foot a{color:var(--rose);text-decoration:none;}
 .gate-foot a:hover{text-decoration:underline;}
+/* ============ 首頁 ============ */
+#main{overflow-y:auto;}
+.home-wrap{max-width:var(--read);margin:0 auto;padding:clamp(28px,6vh,72px) clamp(18px,4vw,28px) 64px;display:flex;flex-direction:column;gap:clamp(36px,6vh,60px);}
+.home-hero{text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px;}
+.home-mark{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--accent-soft),var(--rose-deep));box-shadow:0 0 24px rgba(25,195,154,.5);}
+.home-title{font-family:var(--serif);font-weight:500;font-size:clamp(1.5rem,4.5vw,2.1rem);letter-spacing:.04em;margin:0;line-height:1.4;}
+.home-sub{color:var(--text-dim);font-size:.92rem;line-height:1.9;margin:0;}
+.home-enter{margin-top:10px;border:none;border-radius:14px;padding:14px 38px;font-size:1rem;font-weight:500;letter-spacing:.1em;cursor:pointer;color:#06231c;background:linear-gradient(135deg,var(--accent),var(--rose-deep));transition:filter .18s,transform .1s;font-family:var(--sans);}
+.home-enter:hover{filter:brightness(1.08);}
+.home-enter:active{transform:translateY(1px);}
+.home-ongoing{display:flex;flex-direction:column;gap:14px;}
+.home-sec-head{display:flex;align-items:baseline;gap:10px;border-bottom:1px solid var(--border-soft);padding-bottom:10px;}
+.home-sec-head h3{font-family:var(--serif);font-weight:500;font-size:1.05rem;letter-spacing:.05em;margin:0;color:var(--text);}
+.home-list{display:flex;flex-direction:column;gap:10px;}
+.home-empty{color:var(--text-faint);font-size:.86rem;line-height:1.8;text-align:center;padding:22px 6px;}
+.home-item{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border-soft);border-radius:13px;padding:12px 14px;text-align:left;transition:border-color .16s,background .16s;width:100%;}
+.home-item:hover{border-color:var(--accent);background:var(--surface-2);}
+.home-ava{flex:0 0 auto;width:46px;height:46px;border-radius:11px;background-size:cover;background-position:center;background-color:var(--surface-2);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:1.2rem;color:var(--accent-soft);}
+.home-item-meta{min-width:0;flex:1;}
+.home-item-name{font-family:var(--serif);font-size:1rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.home-item-last{color:var(--text-faint);font-size:.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:3px;}
+.home-foot{text-align:center;margin-top:6px;}
+.home-foot a{font-size:.74rem;color:var(--text-faint);text-decoration:none;letter-spacing:.05em;}
+.home-foot a:hover{color:var(--text-dim);text-decoration:underline;}
 </style>
 </head>
 <body>
 <div id="app">
   <header>
-    <button class="iconbtn" id="btn-menu" aria-label="開啟角色側欄" title="對話中的角色">
-      <span></span><span></span><span></span>
-    </button>
+    <span class="brand"><span class="mark"></span><h1>對戲</h1></span>
     <span class="spacer"></span>
-    <button class="ghost" id="btn-chars">角色</button>
-    <button class="ghost" id="btn-export">匯出</button>
-    <button class="ghost" id="btn-new">新對話</button>
     <button class="ghost gear" id="btn-settings">設定</button>
   </header>
 
   <main id="main">
-    <div class="thread" id="thread"></div>
-  </main>
+    <div class="home-wrap">
+      <div class="home-hero">
+        <span class="home-mark"></span>
+        <h2 class="home-title">與你的角色，共寫一段故事</h2>
+        <p class="home-sub">挑一張角色卡開始對戲。每個角色都會各自記住自己的故事，<br>也可以為每個角色設定不同的「我的角色」。</p>
+        <button class="home-enter" id="home-enter">瀏覽角色</button>
+      </div>
 
-  <footer>
-    <div class="composer">
-      <button class="compose-btn" id="btn-persona" title="我的角色" aria-label="我的角色">✎</button>
-      <textarea id="input" rows="1" placeholder="寫下你的行動或對白…（Enter 送出，Shift+Enter 換行）"></textarea>
-      <button class="send" id="btn-send">送出</button>
+      <div class="home-ongoing">
+        <div class="home-sec-head">
+          <h3>進行中的對話</h3>
+        </div>
+        <div class="home-list" id="home-list"></div>
+      </div>
+
+      <div class="home-foot">
+        <a href="terms.html" target="_blank" rel="noopener">使用條款與內容聲明</a>
+      </div>
     </div>
-    <div class="footlinks">
-      <a href="terms.html" target="_blank" rel="noopener">使用條款與內容聲明</a>
-    </div>
-  </footer>
+  </main>
 </div>
 
 <div id="overlay"></div>
@@ -570,39 +596,6 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
 
 <div id="toast"><span id="toast-msg"></span><button id="toast-undo">復原</button></div>
 
-<div id="charselect">
-  <button class="iconbtn cs-menu" id="btn-menu-cs" aria-label="開啟角色側欄" title="對話中的角色">
-    <span></span><span></span><span></span>
-  </button>
-  <div class="cs-wrap">
-    <div class="cs-top"><span class="mark"></span><h1>選擇角色</h1></div>
-    <p class="cs-sub">挑一張角色卡開始對戲。每個角色都會各自記住自己的故事。</p>
-    <div class="cs-grid" id="cs-grid"></div>
-    <div class="cs-foot"><a href="terms.html" target="_blank" rel="noopener">使用條款與內容聲明</a></div>
-  </div>
-</div>
-
-<div id="charintro">
-  <div class="ci-bg" id="ci-bg"></div>
-  <div class="ci-wrap">
-    <button class="ci-back" id="ci-back">‹ 返回</button>
-    <div class="ci-grid">
-      <div class="ci-left">
-        <div class="ci-portrait" id="ci-portrait"></div>
-        <button class="ci-start" id="ci-start">開始聊天</button>
-      </div>
-      <div class="ci-info">
-        <h1 class="ci-name" id="ci-name"></h1>
-        <div class="ci-bio" id="ci-bio"></div>
-        <div class="ci-docs">
-          <button class="ci-doc-btn" id="ci-main">主檔</button>
-          <button class="ci-doc-btn" id="ci-extra">次要讀取</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
 <div id="ratelimit">
   <div class="ce-backdrop" id="rl-backdrop"></div>
   <div class="ce-card" style="max-width:460px">
@@ -611,56 +604,6 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
     <p class="note" id="rl-msg" style="margin-top:10px">已達 Gemini 免費額度或短時間請求過快（429）。稍等一下再試就好；如果你常常聊得很頻繁，可以考慮在 Google AI Studio 開通付費 Tier。</p>
     <p class="note" id="rl-tip" style="margin-top:14px">小提醒：免費額度有每分鐘與每天兩種上限。短時間連發容易撞到「每分鐘」那條，稍候即可；若聊整天才撞到，就是「每天」上限了，要等隔天重置或升級方案。</p>
     <div class="ce-btns"><span class="spacer"></span><button class="ce-cancel" id="rl-close">我知道了</button></div>
-  </div>
-</div>
-
-<div id="docview">
-  <div class="ce-backdrop" id="dv-backdrop"></div>
-  <div class="ce-card">
-    <h2 id="dv-title">主檔</h2>
-    <div class="dv-body" id="dv-body"></div>
-    <div class="ce-btns"><span class="spacer"></span><button class="ce-cancel" id="dv-close">關閉</button></div>
-  </div>
-</div>
-
-<div id="chareditor">
-  <div class="ce-backdrop" id="ce-backdrop"></div>
-  <div class="ce-card">
-    <h2 id="ce-title">新增角色</h2>
-    <label>角色名稱</label>
-    <input type="text" id="ce-name" placeholder="例如：霍燼">
-    <label>角色設定（系統提示）</label>
-    <textarea class="tall" id="ce-system" placeholder="描述這個角色的身分、性格、說話風格，以及書寫規則…"></textarea>
-    <label>開場白 <span class="tip">每次「新對話」由此開場，可留空</span></label>
-    <textarea class="mid" id="ce-opening"></textarea>
-    <div class="ce-btns">
-      <button class="ce-del" id="ce-del">刪除</button>
-      <span class="spacer"></span>
-      <button class="ce-cancel" id="ce-cancel">取消</button>
-      <button class="btn-sm" id="ce-save">儲存</button>
-    </div>
-  </div>
-</div>
-
-<div id="persona">
-  <div class="ce-backdrop" id="persona-backdrop"></div>
-  <div class="ce-card">
-    <h2>我的角色</h2>
-    <p class="note" style="margin-top:0">這裡填你扮演的角色（故事裡的「你／我」）。這份資料會提供給 AI，讓它知道你是誰、長什麼樣子；但 AI 仍不會替你決定行動。套用到所有角色。</p>
-    <label>名字</label>
-    <input type="text" id="p-name" placeholder="你的角色名字">
-    <label>年齡</label>
-    <input type="text" id="p-age" placeholder="例如：26">
-    <label>外觀</label>
-    <textarea class="mid" id="p-look" placeholder="髮色、身形、穿著、氣質…"></textarea>
-    <label>描述 <span class="tip">身分、性格、背景，可留空</span></label>
-    <textarea class="tall" id="p-desc" placeholder="你的角色的身分、個性、與這個世界的關係…"></textarea>
-    <div class="ce-btns">
-      <button class="ce-del" id="p-clear">清空</button>
-      <span class="spacer"></span>
-      <button class="ce-cancel" id="p-cancel">取消</button>
-      <button class="btn-sm" id="p-save">儲存</button>
-    </div>
   </div>
 </div>
 
@@ -694,28 +637,10 @@ const store=(()=>{
 })();
 
 /* ============ 預設角色（你的格式規則已寫進去） ============ */
-const DEFAULT_NAME="霍燼";
-const DEFAULT_SYSTEM=
-`你是一位專業的中文小說對戲夥伴，正在與我進行一對一的角色扮演（RP）。請完全沉浸在角色之中，與我共同推進一段故事。
-
-【你扮演的角色】
-霍燼，三十二歲，跨國企業「燼石集團」的總裁。外表冷峻、氣場強勢，習慣掌控全局；對外不假辭色，唯獨對「你（我所扮演的角色）」會在不經意間流露佔有與在意。聰明、果決，帶著危險的溫柔。
-
-【書寫規則】
-- 一律使用繁體中文，並使用全形標點（「」、，。…？！）。
-- 以第三人稱描寫霍燼，動作描寫與對白自然交錯，不要整段只有對白或只有敘述。
-- 每則回覆約 900 字，維持小說般的敘事密度與畫面感。
-- 只描寫霍燼以及周遭環境、氛圍，絕對不要替我（我的角色）決定行動、心理或台詞，把選擇權留給我。
-- 適時推進劇情、製造張力與轉折，不要原地打轉或一味等我下指令。
-- 保持角色性格一致，不要出戲，不要提及自己是 AI 或語言模型。
-
-請依以上設定，扮演霍燼與我對戲。`;
-const DEFAULT_OPENING=
-`夜裡十一點，燼石集團頂樓的辦公室只亮著一盞落地燈。霍燼鬆了領帶，指節抵著太陽穴，桌上那份尚未簽署的合約被擱在一旁。電梯「叮」地一聲，他沒有抬頭，卻先一步開了口。
-
-「這個時間還留在公司，是想加班——還是在等我？」
-
-他終於側過臉，目光落在門口的身影上，唇角那一抹弧度淺得幾乎看不出來，眼神卻牢牢將人攏住，不容許半分退路。`;
+/* 預設角色已移除：讀不到 character/ 時不再塞入內建角色，改為顯示提示。 */
+const DEFAULT_NAME="";
+const DEFAULT_SYSTEM="";
+const DEFAULT_OPENING="";
 
 const DEFAULT_FORMAT=
 `# 共用書寫格式（套用到所有角色）
@@ -755,7 +680,22 @@ let state={
 let streaming=false,currentAbort=null,editingIndex=null;
 
 /* ============ 工具 ============ */
-const $=(s,el=document)=>el.querySelector(s);
+const $=(s,el=document)=>{const n=el.querySelector(s);if(n)return n;
+  // 首頁不含對戲/角色庫的部分 DOM；回傳萬用安全 stub，讓殘留程式呼叫不丟錯。
+  const noop=()=>stub;
+  const stub=new Proxy(noop,{
+    get:(_,k)=>{
+      if(k==="classList")return {add(){},remove(){},toggle(){},contains(){return false;}};
+      if(k==="style")return {};
+      if(k==="value"||k==="textContent"||k==="innerHTML")return "";
+      if(k==="disabled"||k==="checked")return false;
+      return stub; // 其餘屬性／方法一律回 stub（可被當函式呼叫、也可再取屬性）
+    },
+    set:()=>true,
+    apply:()=>stub
+  });
+  return stub;
+};
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function charLen(s){return [...(s||"")].length;}
 function renderBody(text,isStreaming){
@@ -810,7 +750,7 @@ async function loadCharacters(){
     if(list.length){state.characters=list;return;}
     throw 0;
   }catch{
-    state.characters=[{id:"default",name:DEFAULT_NAME,system:DEFAULT_SYSTEM,opening:DEFAULT_OPENING,image:""}];
+    state.characters=[]; // 讀不到角色：保持空陣列，由 renderCharSelect 顯示提示
   }
 }
 let saveTimer;
@@ -1072,11 +1012,11 @@ function collectBackup(){
     for(let i=0;i<localStorage.length;i++){
       const k=localStorage.key(i);if(!k)continue;
       if(k==="airp_key")continue; // 不備份金鑰
-      if(k.startsWith("airp_msgs_")||k==="airp_format"||k==="airp_status"||k==="airp_persona"||k==="airp_active")data[k]=localStorage.getItem(k);
+      if(k.startsWith("airp_msgs_")||k.startsWith("airp_persona_")||k==="airp_format"||k==="airp_status"||k==="airp_persona"||k==="airp_active")data[k]=localStorage.getItem(k);
     }
   }catch{}
   if(Object.keys(data).length===0){ // 後備：localStorage 不可用時，從已載入角色取
-    for(const c of state.characters){const v=store.get(msgKey(c.id));if(v!=null)data[msgKey(c.id)]=v;}
+    for(const c of state.characters){const v=store.get(msgKey(c.id));if(v!=null)data[msgKey(c.id)]=v;const pv=store.get("airp_persona_"+c.id);if(pv!=null)data["airp_persona_"+c.id]=pv;}
     const f=store.get("airp_format");if(f!=null)data["airp_format"]=f;const st=store.get("airp_status");if(st!=null)data["airp_status"]=st;const pe=store.get("airp_persona");if(pe!=null)data["airp_persona"]=pe;
     const a=store.get("airp_active");if(a!=null)data["airp_active"]=a;
   }
@@ -1101,7 +1041,7 @@ $("#restore-file").addEventListener("change",async e=>{
   try{payload=JSON.parse(await file.text());}catch{toast("檔案讀取失敗，格式不正確");return;}
   const data=payload&&payload.data;
   if(!payload||payload.app!=="kimmchii-airp"||!data||typeof data!=="object"){toast("這不是有效的對戲備份檔");return;}
-  const keys=Object.keys(data).filter(k=>k.startsWith("airp_msgs_")||k==="airp_format"||k==="airp_status"||k==="airp_persona"||k==="airp_active");
+  const keys=Object.keys(data).filter(k=>k.startsWith("airp_msgs_")||k.startsWith("airp_persona_")||k==="airp_format"||k==="airp_status"||k==="airp_persona"||k==="airp_active");
   if(!keys.length){toast("備份檔裡沒有可還原的對話");return;}
   if(!confirm("匯入會以備份檔的內容覆蓋對應角色的對話紀錄，確定要還原嗎？"))return;
   for(const k of keys){try{store.set(k,data[k]);}catch{}}
@@ -1187,7 +1127,7 @@ async function gsPull(){
     const p=await r.json();
     if(!p||p.app!=="kimmchii-airp"||!p.data){toast("雲端檔格式不符");return;}
     if(!confirm("從雲端下載會覆蓋這台裝置對應角色的對話，確定嗎？"))return;
-    const keys=Object.keys(p.data).filter(k=>k.startsWith("airp_msgs_")||k==="airp_format"||k==="airp_status"||k==="airp_persona"||k==="airp_active");
+    const keys=Object.keys(p.data).filter(k=>k.startsWith("airp_msgs_")||k.startsWith("airp_persona_")||k==="airp_format"||k==="airp_status"||k==="airp_persona"||k==="airp_active");
     for(const k of keys){try{store.set(k,p.data[k]);}catch{}}
     gsStatus("已下載，重新載入中…");setTimeout(()=>location.reload(),700);
   }catch(e){gsStatus("下載失敗："+(e.message||e));toast("下載失敗："+(e.message||e));}
@@ -1252,26 +1192,9 @@ function personaBlock(){
   return "\n\n【使用者扮演的角色（故事中的「你」）】\n"+lines.join("\n")+"\n（依此理解使用者角色的身分與外觀；但仍不要替使用者決定其行動、心理或台詞。）";
 }
 function loadPersona(){
-  try{const s=store.get("airp_persona");if(s){const o=JSON.parse(s);state.persona={name:o.name||"",age:o.age||"",look:o.look||"",desc:o.desc||""};}}catch{}
+  // 選角頁不在此設定「我的角色」；persona 改在各角色的聊天室（chat.html）裡依角色獨立設定。
+  state.persona={name:"",age:"",look:"",desc:""};
 }
-function openPersona(){
-  const p=state.persona||{};
-  $("#p-name").value=p.name||"";$("#p-age").value=p.age||"";$("#p-look").value=p.look||"";$("#p-desc").value=p.desc||"";
-  $("#persona").classList.add("show");
-}
-function closePersona(){$("#persona").classList.remove("show");}
-$("#btn-persona").addEventListener("click",openPersona);
-$("#p-cancel").addEventListener("click",closePersona);
-$("#persona-backdrop").addEventListener("click",closePersona);
-$("#p-clear").addEventListener("click",()=>{
-  $("#p-name").value="";$("#p-age").value="";$("#p-look").value="";$("#p-desc").value="";
-});
-$("#p-save").addEventListener("click",()=>{
-  state.persona={name:$("#p-name").value.trim(),age:$("#p-age").value.trim(),look:$("#p-look").value.trim(),desc:$("#p-desc").value.trim()};
-  store.set("airp_persona",JSON.stringify(state.persona));
-  closePersona();
-  toast("已儲存我的角色");
-});
 
 /* 共用書寫格式：預設來自 character/format.md，使用者可在設定裡覆蓋（存在本機） */
 let fmtTimer;
@@ -1496,7 +1419,7 @@ function renderSidebar(){
 $("#btn-menu").addEventListener("click",openSidebar);
 $("#btn-menu-cs").addEventListener("click",openSidebar);
 $("#sidebar-close").addEventListener("click",closeSidebar);
-$("#sb-all").addEventListener("click",()=>{closeSidebar();if(streaming){toast("生成中，請先停止");return;}showSelection();});
+$("#sb-all").addEventListener("click",()=>{closeSidebar();location.href="characters.html";});
 $("#sb-body").addEventListener("click",e=>{
   const it=e.target.closest(".sb-item");if(!it)return;
   closeSidebar();
@@ -1534,8 +1457,31 @@ function hideToast(){$("#toast").classList.remove("show");}
 function passAgeGate(){
   $("#agegate").classList.add("hidden");
   try{sessionStorage.setItem("airp_age_ok","1");}catch{}
-  showSelection();
+  enterHome();
 }
+async function enterHome(){
+  await loadCharacters();
+  renderHomeList();
+}
+function renderHomeList(){
+  const box=document.getElementById("home-list");if(!box)return;
+  const list=ongoingChats();
+  if(!list.length){box.innerHTML=`<div class="home-empty">還沒有進行中的對話。<br>點上方「瀏覽角色」挑一位開始。</div>`;return;}
+  box.innerHTML=list.map(c=>{
+    const img=c.image?` style="background-image:url('${esc(c.image)}')"`:"";
+    const mono=c.image?"":esc([...(c.name||"?")][0]||"?");
+    const last=esc(lastLineOf(c.id).slice(0,40))||"（開場）";
+    return `<button class="home-item" data-id="${esc(c.id)}">
+      <div class="home-ava"${img}>${mono}</div>
+      <div class="home-item-meta"><div class="home-item-name">${esc(c.name||"未命名角色")}</div><div class="home-item-last">${last}</div></div>
+    </button>`;
+  }).join("");
+}
+$("#home-enter").addEventListener("click",()=>{location.href="characters.html";});
+$("#home-list").addEventListener("click",e=>{
+  const it=e.target.closest(".home-item");if(!it)return;
+  location.href="chat.html?id="+encodeURIComponent(it.dataset.id);
+});
 $("#gate-enter").addEventListener("click",()=>{passAgeGate();});
 $("#gate-leave").addEventListener("click",()=>{window.location.replace("https://www.google.com");});
 try{if(sessionStorage.getItem("airp_age_ok")==="1"){passAgeGate();}}catch{}
