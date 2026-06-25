@@ -433,6 +433,16 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
 .ip-info{background:rgba(var(--accent-rgb),.06);border:1px solid var(--border-soft);border-radius:10px;padding:10px 12px;margin:14px 0;font-size:.84rem;line-height:1.8;color:var(--text-dim);}
 .ip-info b{color:var(--text);font-weight:500;}
 #ip-affinity{margin-top:4px;}
+#importpick{position:fixed;inset:0;z-index:120;display:none;}
+#importpick.show{display:block;}
+#importpick .ce-card{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:calc(100% - 32px);max-height:88vh;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px 22px 18px;z-index:121;box-shadow:0 12px 32px rgba(var(--shadow-rgb),.4);}
+#importpick .ce-backdrop{position:fixed;inset:0;background:rgba(var(--shadow-rgb),.55);z-index:120;}
+.impk-opts{display:flex;flex-direction:column;gap:10px;margin:14px 0 6px;}
+.impk-opt{text-align:left;background:var(--surface-2);border:1px solid var(--border-soft);border-radius:11px;padding:13px 15px;cursor:pointer;transition:border-color .15s,background .15s;font-family:var(--sans);color:var(--text);}
+.impk-opt:hover{border-color:var(--accent);background:rgba(var(--accent-rgb),.08);}
+.impk-opt-title{font-family:var(--serif);font-size:1rem;color:var(--text);margin-bottom:5px;letter-spacing:.03em;}
+.impk-opt-desc{font-size:.79rem;color:var(--text-dim);line-height:1.7;}
+.impk-opt-desc strong{color:var(--text);font-weight:500;}
 </style>
 </head>
 <body>
@@ -443,8 +453,8 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
     </button>
     <span class="spacer"></span>
     <button class="ghost" id="btn-chars">角色</button>
-    <button class="ghost" id="btn-export">匯出</button>
-    <button class="ghost" id="btn-backup-top" title="把所有對話、設定打包下載為 JSON 備份檔">備份</button>
+    <button class="ghost" id="btn-backup-top" title="把所有對話、設定打包下載為備份檔（JSON）">匯出</button>
+    <button class="ghost" id="btn-import-top" title="從備份檔或外部 txt 還原／匯入對話">匯入</button>
     <button class="ghost gear" id="btn-settings">設定</button>
   </header>
 
@@ -736,6 +746,28 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
       <span class="spacer"></span>
       <button class="ce-cancel" id="p-cancel">取消</button>
       <button class="btn-sm" id="p-save">儲存</button>
+    </div>
+  </div>
+</div>
+
+<div id="importpick">
+  <div class="ce-backdrop" id="impk-backdrop"></div>
+  <div class="ce-card" style="max-width:440px">
+    <h2>選擇匯入方式</h2>
+    <p class="note" style="margin-top:0">兩種來源用途不同，請依你的檔案類型選擇。</p>
+    <div class="impk-opts">
+      <button class="impk-opt" id="impk-site">
+        <div class="impk-opt-title">網站備份檔（.json）</div>
+        <div class="impk-opt-desc">從這個網站「匯出」下載的 JSON 檔。將還原<strong>全部角色、設定與主題</strong>，覆蓋本機資料並重新整理。</div>
+      </button>
+      <button class="impk-opt" id="impk-ext">
+        <div class="impk-opt-title">外部備份檔（.txt）</div>
+        <div class="impk-opt-desc">外部 RP 平台或本站舊版匯出的 txt 對話檔。只灌進<strong>當前正在聊天的角色</strong>，覆蓋現有對話，並可填入起始好感度。</div>
+      </button>
+    </div>
+    <div class="ce-btns">
+      <span class="spacer"></span>
+      <button class="ce-cancel" id="impk-cancel">取消</button>
     </div>
   </div>
 </div>
@@ -1233,17 +1265,6 @@ $("#btn-new").addEventListener("click",()=>{
   toast("已開始新對話",()=>{state.messages=backup;renderChat();saveMessages();});
 });
 
-$("#btn-export").addEventListener("click",()=>{
-  if(state.messages.length===0){toast("目前沒有對話可匯出");return;}
-  const name=state.charName||"對方";
-  let out=`角色：${name}\n生成模型：${state.model}\n匯出時間：${new Date().toLocaleString("zh-TW")}\n\n${"─".repeat(24)}\n\n`;
-  state.messages.forEach(m=>{out+=(m.role==="user"?"【你】":`【${name}】`)+"\n"+m.text+"\n\n";});
-  const blob=new Blob([out],{type:"text/plain;charset=utf-8"});
-  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
-  a.download=`對戲_${name}_${new Date().toISOString().slice(0,10)}.txt`;
-  document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-});
 
 /* ============ 備份 / 還原（整包對話） ============ */
 function collectBackup(){
@@ -1869,6 +1890,17 @@ function openImportPreview(parsed){
   $("#importpreview").classList.add("show");
 }
 function closeImportPreview(){$("#importpreview").classList.remove("show");pendingImport=null;}
+
+/* Header 匯入分流彈窗 */
+$("#btn-import-top").addEventListener("click",()=>$("#importpick").classList.add("show"));
+$("#impk-cancel").addEventListener("click",()=>$("#importpick").classList.remove("show"));
+$("#impk-backdrop").addEventListener("click",()=>$("#importpick").classList.remove("show"));
+$("#impk-site").addEventListener("click",()=>{$("#importpick").classList.remove("show");$("#restore-file").click();});
+$("#impk-ext").addEventListener("click",()=>{
+  if(!state.activeId){toast("請先進入要承接紀錄的角色再匯入外部 txt");return;}
+  $("#importpick").classList.remove("show");
+  $("#import-txt-file").click();
+});
 
 $("#btn-import-txt").addEventListener("click",()=>$("#import-txt-file").click());
 $("#import-txt-file").addEventListener("change",async e=>{
