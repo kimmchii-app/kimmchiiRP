@@ -746,9 +746,9 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
     <h2>匯入對話預覽</h2>
     <p class="note" style="margin-top:0">確認下列內容無誤後，按「確認匯入」會把<strong>當前角色的現有對話</strong>整段覆蓋成這份匯入內容。建議先到設定按「備份」保險一下。</p>
     <div class="ip-info" id="ip-info"></div>
-    <label>目前好感度 <span class="tip">0–100，可空</span></label>
-    <input type="number" id="ip-affinity" min="0" max="100" placeholder="例如：75（留空＝不填）">
-    <p class="note">這個數字會附在匯入的最後一則 AI 回覆末尾的狀態列上，AI 下一則會自然從這個值延續。如果留空，AI 會自己抓一個起點。</p>
+    <label>目前好感度 <span class="tip">非負整數，無上限，可空</span></label>
+    <input type="number" id="ip-affinity" min="0" step="1" placeholder="例如：75 或 1500（留空＝不填）">
+    <p class="note">這個數字會附在匯入的最後一則 AI 回覆末尾的狀態列上，AI 下一則會從這個值依 ±1～5 自然延續。如果留空，AI 會自己抓一個起點。</p>
     <div class="ce-btns">
       <span class="spacer"></span>
       <button class="ce-cancel" id="ip-cancel">取消</button>
@@ -809,14 +809,16 @@ const DEFAULT_STATUS=
 🕒 時間：（目前故事時間）
 📍 地點：（目前所在地點）
 🧥 當下服裝：（對方此刻的穿著）
-💗 好感度：（0–100 的數字）
+💗 好感度：（一個非負整數，無上限）
 💭 內心想法：（對方此刻沒說出口的真實想法）
 📖 頁數：Page.（頁碼）
 ──────────
 
 【好感度規則】
-- 依劇情合理增減，每則變動 ±1～5，不可無故暴衝或驟降。
-- 好感度達 80 以上，對方才會主動示好；未達則維持其性格分寸。
+- 好感度沒有上限，是一個非負整數，可以累積到很大的數字（例如 1000、10000 以上）。
+- 依劇情合理增減，**每則變動嚴格限制在 ±1～5 之間**，不可一次跳超過 5、也不可無故驟降。
+- 角色是否主動示好、表達情感的方式，完全依該角色自身的性格設定決定，不設任何「好感度門檻」。
+- 好感度只是劇情累積的指標，不要因為達到某個數字就觸發行為改變；行為始終由角色性格 + 當下情境決定。
 
 【頁數規則】
 - 從 Page.1 開始，每則回覆遞增 1（上一則為 Page.n，這一則即為 Page.(n+1)）。`;
@@ -1887,7 +1889,7 @@ $("#ip-confirm").addEventListener("click",()=>{
   // 好感度：附在最後一則 model 訊息末尾的狀態列，AI 自然從此延續
   const aff=$("#ip-affinity").value.trim();
   if(aff!==""){
-    const n=Math.max(0,Math.min(100,Math.round(Number(aff))));
+    const n=Math.max(0,Math.round(Number(aff)));
     if(!isNaN(n)){
       // 找最後一則 model 訊息
       for(let i=msgs.length-1;i>=0;i--){
