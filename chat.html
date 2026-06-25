@@ -426,6 +426,13 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
 .swatch:hover{transform:scale(1.08);}
 .swatch.active{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.25);}
 .swatch.active::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid var(--on-accent);opacity:.0;}
+#importpreview{position:fixed;inset:0;z-index:120;display:none;}
+#importpreview.show{display:block;}
+#importpreview .ce-card{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);max-width:520px;width:calc(100% - 32px);max-height:88vh;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px 22px 18px;z-index:121;box-shadow:0 12px 32px rgba(var(--shadow-rgb),.4);}
+#importpreview .ce-backdrop{position:fixed;inset:0;background:rgba(var(--shadow-rgb),.55);z-index:120;}
+.ip-info{background:rgba(var(--accent-rgb),.06);border:1px solid var(--border-soft);border-radius:10px;padding:10px 12px;margin:14px 0;font-size:.84rem;line-height:1.8;color:var(--text-dim);}
+.ip-info b{color:var(--text);font-weight:500;}
+#ip-affinity{margin-top:4px;}
 </style>
 </head>
 <body>
@@ -588,6 +595,14 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
       <input type="file" id="restore-file" accept="application/json,.json" hidden>
     </div>
 
+    <div class="field-sec">外部對話匯入</div>
+    <div class="field">
+      <label>從 txt 匯入對話 <span class="tip">把舊紀錄接續到當前角色</span></label>
+      <p class="note">把外部 RP 平台或本站匯出的對話 txt 匯入到<strong>當前正在聊天的角色</strong>，覆蓋現有對話。匯入時可填入「目前好感度」當作起點。請先進入要承接紀錄的那個角色再執行。</p>
+      <button class="btn-sm" id="btn-import-txt">選擇 txt 檔匯入</button>
+      <input type="file" id="import-txt-file" accept="text/plain,.txt" hidden>
+    </div>
+
     <div class="field-sec">雲端同步（Google 雲端硬碟，進階）</div>
     <div class="field">
       <p class="note">想跨裝置自動同步、不想手動搬備份檔的話，可自行到 Google Cloud 申請一組 OAuth Client ID，貼進下方欄位後就能用。同步檔會存在你<strong>自己的</strong> Google 雲端硬碟一個隱藏的 App 專用資料夾，只有這個網站讀得到，不含金鑰。</p>
@@ -721,6 +736,23 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
       <span class="spacer"></span>
       <button class="ce-cancel" id="p-cancel">取消</button>
       <button class="btn-sm" id="p-save">儲存</button>
+    </div>
+  </div>
+</div>
+
+<div id="importpreview">
+  <div class="ce-backdrop" id="ip-backdrop"></div>
+  <div class="ce-card">
+    <h2>匯入對話預覽</h2>
+    <p class="note" style="margin-top:0">確認下列內容無誤後，按「確認匯入」會把<strong>當前角色的現有對話</strong>整段覆蓋成這份匯入內容。建議先到設定按「備份」保險一下。</p>
+    <div class="ip-info" id="ip-info"></div>
+    <label>目前好感度 <span class="tip">0–100，可空</span></label>
+    <input type="number" id="ip-affinity" min="0" max="100" placeholder="例如：75（留空＝不填）">
+    <p class="note">這個數字會附在匯入的最後一則 AI 回覆末尾的狀態列上，AI 下一則會自然從這個值延續。如果留空，AI 會自己抓一個起點。</p>
+    <div class="ce-btns">
+      <span class="spacer"></span>
+      <button class="ce-cancel" id="ip-cancel">取消</button>
+      <button class="btn-sm" id="ip-confirm">確認匯入</button>
     </div>
   </div>
 </div>
@@ -1754,6 +1786,126 @@ function loadTheme(){
   });}
 })();
 loadTheme();
+
+
+/* ============ 從 txt 匯入對話 ============ */
+// 偵測並解析兩種 txt 格式：
+//  A. 外部 RP 平台格式：每則開頭 [YYYY-MM-DD HH:MM:SS] 名字: ...
+//  B. 本站匯出格式：每則開頭 【你】 或 【角色名】，前面有「角色：」「匯出時間：」標頭
+// 回傳：{ messages: [...], info: {fmt, total, charName, userName, range} } 或 null
+function parseImportedTxt(text){
+  if(!text||!text.trim())return null;
+  const lines=text.replace(/\r\n/g,"\n").split("\n");
+
+  // —— 嘗試格式 A：[時間] 名字: 內容 ——
+  const reA=/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]\s+([^:：]+?)[：:]\s?(.*)$/;
+  const headersA=[];
+  lines.forEach((ln,i)=>{const m=ln.match(reA);if(m)headersA.push({i,time:m[1],name:m[2].trim(),first:m[3]});});
+  if(headersA.length>=2){
+    // 第一個切割點以後算進來；之前的當檔案標頭忽略
+    const msgs=[];
+    for(let k=0;k<headersA.length;k++){
+      const h=headersA[k];
+      const next=headersA[k+1]?headersA[k+1].i:lines.length;
+      const body=[h.first, ...lines.slice(h.i+1,next)].join("\n").trim();
+      if(!body)continue;
+      // Environment/system 跳過（這是當初的系統提示，不灌進歷史）
+      if(/environment|^system$/i.test(h.name))continue;
+      msgs.push({name:h.name, time:h.time, text:body});
+    }
+    if(msgs.length){
+      // 推斷角色名與玩家名：出現次數較多的那個通常是 AI（會生較長的回覆）
+      const counts={};
+      msgs.forEach(m=>counts[m.name]=(counts[m.name]||0)+1);
+      const names=Object.keys(counts);
+      let charName=names[0], userName=names[1]||"";
+      // 平均字數較長者推測為 AI
+      const avg={};
+      names.forEach(n=>{const arr=msgs.filter(m=>m.name===n);avg[n]=arr.reduce((a,m)=>a+m.text.length,0)/arr.length;});
+      names.sort((a,b)=>avg[b]-avg[a]);
+      charName=names[0]; userName=names[1]||userName;
+      const messages=msgs.map(m=>({role:m.name===userName?"user":"model", text:m.text}));
+      return {messages, info:{fmt:"外部 RP 平台格式", total:messages.length, charName, userName, range:msgs[0].time+" ～ "+msgs[msgs.length-1].time}};
+    }
+  }
+
+  // —— 嘗試格式 B：本站「【你】/【角色名】」格式 ——
+  const reB=/^【([^】]+)】\s*$/;
+  const headersB=[];
+  lines.forEach((ln,i)=>{const m=ln.match(reB);if(m)headersB.push({i,name:m[1].trim()});});
+  if(headersB.length>=2){
+    const msgs=[];
+    for(let k=0;k<headersB.length;k++){
+      const h=headersB[k];
+      const next=headersB[k+1]?headersB[k+1].i:lines.length;
+      const body=lines.slice(h.i+1,next).join("\n").trim();
+      if(!body)continue;
+      msgs.push({name:h.name, text:body});
+    }
+    if(msgs.length){
+      // 「你」固定是玩家，其餘是 AI
+      let charName=msgs.find(m=>m.name!=="你")?.name || "對方";
+      const messages=msgs.map(m=>({role:m.name==="你"?"user":"model", text:m.text}));
+      return {messages, info:{fmt:"本站匯出格式", total:messages.length, charName, userName:"你", range:"—"}};
+    }
+  }
+
+  return null;
+}
+
+let pendingImport=null;
+function openImportPreview(parsed){
+  pendingImport=parsed;
+  const info=parsed.info;
+  $("#ip-info").innerHTML=
+    `<div>偵測格式：<b>${esc(info.fmt)}</b></div>`+
+    `<div>共 <b>${info.total}</b> 則訊息</div>`+
+    `<div>角色名：<b>${esc(info.charName)}</b>${info.userName?`　玩家：<b>${esc(info.userName)}</b>`:""}</div>`+
+    (info.range&&info.range!=="—"?`<div>時間範圍：${esc(info.range)}</div>`:"")+
+    `<div style="margin-top:6px;color:var(--text-faint)">將覆蓋當前角色「<b>${esc(state.charName||"")}</b>」的 ${state.messages.length} 則對話。</div>`;
+  $("#ip-affinity").value="";
+  $("#importpreview").classList.add("show");
+}
+function closeImportPreview(){$("#importpreview").classList.remove("show");pendingImport=null;}
+
+$("#btn-import-txt").addEventListener("click",()=>$("#import-txt-file").click());
+$("#import-txt-file").addEventListener("change",async e=>{
+  const file=e.target.files&&e.target.files[0];e.target.value="";
+  if(!file)return;
+  if(!state.activeId){toast("請先進入要承接紀錄的角色再匯入");return;}
+  let text;
+  try{text=await file.text();}catch{toast("檔案讀取失敗");return;}
+  const parsed=parseImportedTxt(text);
+  if(!parsed||!parsed.messages.length){toast("看不懂這個檔案的格式，無法匯入");return;}
+  openImportPreview(parsed);
+});
+$("#ip-cancel").addEventListener("click",closeImportPreview);
+$("#ip-backdrop").addEventListener("click",closeImportPreview);
+$("#ip-confirm").addEventListener("click",()=>{
+  if(!pendingImport)return;
+  const msgs=pendingImport.messages.slice();
+  // 好感度：附在最後一則 model 訊息末尾的狀態列，AI 自然從此延續
+  const aff=$("#ip-affinity").value.trim();
+  if(aff!==""){
+    const n=Math.max(0,Math.min(100,Math.round(Number(aff))));
+    if(!isNaN(n)){
+      // 找最後一則 model 訊息
+      for(let i=msgs.length-1;i>=0;i--){
+        if(msgs[i].role==="model"){
+          msgs[i].text=msgs[i].text+"\n\n──────────\n💗 好感度："+n;
+          break;
+        }
+      }
+    }
+  }
+  state.messages=msgs;
+  editingIndex=null;
+  saveMessages();
+  renderChat();
+  scrollDown();
+  closeImportPreview();
+  toast(`已匯入 ${msgs.length} 則對話`);
+});
 
 </script>
 </body>
