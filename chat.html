@@ -437,7 +437,7 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
     <span class="spacer"></span>
     <button class="ghost" id="btn-chars">角色</button>
     <button class="ghost" id="btn-export">匯出</button>
-    <button class="ghost" id="btn-new">新對話</button>
+    <button class="ghost" id="btn-backup-top" title="把所有對話、設定打包下載為 JSON 備份檔">備份</button>
     <button class="ghost gear" id="btn-settings">設定</button>
   </header>
 
@@ -555,6 +555,11 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
 
     <div class="field-sec">角色</div>
     <p class="note">角色的名稱、設定與開場白，請在首頁的「角色」畫面新增與編輯。每個角色都會各自記住自己的對話。</p>
+    <div class="field">
+      <label>開始新對話 <span class="tip">把當前角色的對話清空，回到開場白</span></label>
+      <button class="btn-sm" id="btn-new" style="align-self:flex-start">開始新對話</button>
+      <p class="note">只會影響當前這個角色；其他角色的對話不受影響。執行後仍可在跳出的提示按「復原」救回。</p>
+    </div>
 
     <div class="field-sec">文字格式</div>
     <div class="field">
@@ -1223,6 +1228,18 @@ function collectBackup(){
   }
   return data;
 }
+$("#btn-backup-top").addEventListener("click",()=>{
+  // 與設定裡「匯出備份檔」相同的完整備份（所有對話、persona、設定、主題）
+  const data=collectBackup();
+  if(Object.keys(data).length===0){toast("目前沒有任何對話可備份");return;}
+  const payload={app:"kimmchii-airp",version:1,exportedAt:new Date().toISOString(),data};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download=`airp-backup-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  toast("已下載備份檔");
+});
 $("#btn-backup").addEventListener("click",()=>{
   const data=collectBackup();
   if(Object.keys(data).length===0){toast("目前沒有任何對話可備份");return;}
