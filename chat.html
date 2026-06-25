@@ -543,6 +543,15 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
       </select>
       <p class="note">僅對 gemini-2.5-flash 系列有效。開啟思考會佔用回覆長度額度，記得把上面的上限一起調高。2.5-pro 一定會思考、無法關閉。</p>
     </div>
+    <div class="field">
+      <label>內容安全 <span class="tip">控制 Gemini 審查的鬆緊</span></label>
+      <select id="f-safety">
+        <option value="off">全關（四類都不擋，最寬，預設）</option>
+        <option value="loose">寬鬆（情慾不擋，其餘僅擋高度確信）</option>
+        <option value="std">標準（Google 一般預設）</option>
+      </select>
+      <p class="note">「全關」最不容易被截斷，但仍可能被 Google 後端的硬性政策攔下。若覺得內容太容易被擋或不夠安全，可改成「寬鬆」或「標準」。</p>
+    </div>
 
     <div class="field-sec">角色</div>
     <p class="note">角色的名稱、設定與開場白，請在首頁的「角色」畫面新增與編輯。每個角色都會各自記住自己的對話。</p>
@@ -750,6 +759,7 @@ const DEFAULT_FORMAT=
 `# 共用書寫格式（套用到所有角色）
 - 一律使用繁體中文，並使用全形標點（「」、，。…？！）。
 - 以第三人稱描寫角色，動作描寫與對白自然交錯，不要整段只有對白或只有敘述。
+- 動作與場景描述直接用正常文字書寫，不要用星號（* 或 **）、底線或任何符號把描述包起來；對白用「」、引述用『』即可。
 - 每則回覆約 600～900 字，維持小說般的敘事密度與畫面感。
 - 只描寫角色與場景氛圍，絕對不要替「我」（使用者的角色）決定行動、心理或台詞，把選擇權留給我。
 - 適時推進劇情、製造張力與轉折，不要原地打轉或一味等我下指令。
@@ -776,7 +786,7 @@ const DEFAULT_STATUS=
 
 /* ============ 狀態 ============ */
 let state={
-  apiKey:"",model:"gemini-2.5-flash",temperature:0.95,maxTokens:8192,thinking:0,
+  apiKey:"",model:"gemini-2.5-flash",temperature:0.95,maxTokens:8192,thinking:0,safety:"off",
   charName:DEFAULT_NAME,systemPrompt:DEFAULT_SYSTEM,opening:DEFAULT_OPENING,format:DEFAULT_FORMAT,statusbar:DEFAULT_STATUS,
   persona:{name:"",age:"",look:"",desc:""},
   messages:[],characters:[],activeId:null
@@ -793,6 +803,9 @@ function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g
 function charLen(s){return [...(s||"")].length;}
 function renderBody(text,isStreaming){
   let h=esc(text||"");
+  // 清掉 AI 可能自作主張加上的星號描述標記（**...** 與 *...*），保留中間文字
+  h=h.replace(/\*\*([^\*\n]+)\*\*/g,"$1");
+  h=h.replace(/\*([^\*\n]+)\*/g,"$1");
   h=h.replace(/「[^」]*」/g,m=>`<span class="dlg">${m}</span>`);
   h=h.replace(/『[^』]*』/g,m=>`<span class="dlg">${m}</span>`);
   if(isStreaming)h+=`<span class="cursor"></span>`;
@@ -809,6 +822,7 @@ function loadState(){
     if(o.temperature!=null)state.temperature=o.temperature;
     if(o.maxTokens!=null)state.maxTokens=o.maxTokens;
     if(o.thinking!=null)state.thinking=o.thinking;
+    if(o.safety)state.safety=o.safety;
   }}catch{}
   try{const old=store.get("airp_messages");if(old!=null&&store.get(msgKey("default"))==null)store.set(msgKey("default"),old);}catch{}
 }
@@ -851,7 +865,7 @@ function saveSettings(){
   clearTimeout(saveTimer);
   saveTimer=setTimeout(()=>{
     store.set("airp_settings",JSON.stringify({
-      apiKey:state.apiKey,model:state.model,temperature:state.temperature,maxTokens:state.maxTokens,thinking:state.thinking
+      apiKey:state.apiKey,model:state.model,temperature:state.temperature,maxTokens:state.maxTokens,thinking:state.thinking,safety:state.safety
     }));
   },250);
 }
@@ -873,6 +887,59 @@ function finishReasonInfo(reason){
     default:                 return {kind:"other",short:reason,        desc:"生成結束代碼："+reason};
   }
 }
+// 內容安全等級：三檔預設，對應四類 HARM_CATEGORY
+const SAFETY_PRESETS={
+  off:   "BLOCK_NONE",            // 全關（最寬）
+  loose: null,                    // 寬鬆：見下方個別處理
+  std:   "BLOCK_MEDIUM_AND_ABOVE" // 標準（Google 一般預設）
+};
+function buildSafetySettings(){
+  const lvl=state.safety||"off";
+  const cats=["HARM_CATEGORY_HARASSMENT","HARM_CATEGORY_HATE_SPEECH","HARM_CATEGORY_SEXUALLY_EXPLICIT","HARM_CATEGORY_DANGEROUS_CONTENT"];
+  if(lvl==="loose"){
+    // 寬鬆：騷擾/仇恨/危險只擋高度確信，情慾全關
+    return [
+      {category:"HARM_CATEGORY_HARASSMENT",threshold:"BLOCK_ONLY_HIGH"},
+      {category:"HARM_CATEGORY_HATE_SPEECH",threshold:"BLOCK_ONLY_HIGH"},
+      {category:"HARM_CATEGORY_SEXUALLY_EXPLICIT",threshold:"BLOCK_NONE"},
+      {category:"HARM_CATEGORY_DANGEROUS_CONTENT",threshold:"BLOCK_ONLY_HIGH"}
+    ];
+  }
+  const th=SAFETY_PRESETS[lvl]||"BLOCK_NONE";
+  return cats.map(c=>({category:c,threshold:th}));
+}
+// 把 HTTP 狀態碼 / 錯誤訊息翻成使用者看得懂的中文 + 建議
+function httpErrorMessage(status,rawMsg){
+  const m=rawMsg||"";
+  // 速率/額度：保留 __RATE_LIMIT__ 前綴以觸發彈窗
+  if(status===429||/RESOURCE_EXHAUSTED|quota|rate.?limit/i.test(m))
+    return `__RATE_LIMIT__已達 Gemini 免費額度或速率上限（429）。稍等一下再試即可；若經常如此，可到 Google AI Studio 開通付費 Tier，或改用較省的模型（gemini-2.5-flash-lite）。`;
+  // 過載
+  if(status===503||/overload|high demand|UNAVAILABLE|try again later/i.test(m))
+    return `模型暫時忙碌（${status}）：Google 端「${state.model}」目前需求量大、暫時過載，跟你的設定無關。稍等十幾秒後按「重新生成」即可；若持續發生，可改用其他模型（如 gemini-2.5-flash-lite）。`;
+  // 逾時
+  if(status===504||/DEADLINE_EXCEEDED|timeout|timed out/i.test(m))
+    return `回應逾時（${status}）：這次生成太久、Google 端中斷了連線。可按「重新生成」再試；若常發生，試著調低「單則回覆長度上限」或關閉思考。`;
+  // 金鑰問題
+  if(status===400&&/API key|API_KEY_INVALID/i.test(m))
+    return `金鑰無效（400）：請到設定確認你的 Gemini API 金鑰是否貼對、是否有多餘空白。`;
+  if(status===403||/PERMISSION_DENIED/i.test(m))
+    return `沒有權限（403）：這把金鑰可能未啟用 Gemini API、被限制，或不能使用「${state.model}」。請到 Google AI Studio 確認金鑰權限與模型可用性。`;
+  // 地區/方案限制（要在 404 之前判斷，因訊息常含 "not supported"）
+  if(status===400&&/FAILED_PRECONDITION|location is not supported|user location|billing/i.test(m))
+    return `服務未開通（400）：你的所在地區或方案可能需要先在 Google AI Studio 綁定帳單才能使用此模型。`;
+  // 模型不存在
+  if(status===404||/NOT_FOUND|is not found|model.*not.*(found|exist)/i.test(m))
+    return `找不到模型（404）：「${state.model}」這個名稱可能拼錯或已不提供。請到設定改選有效的模型（如 gemini-2.5-flash）。`;
+  // 請求格式
+  if(status===400)
+    return `請求有誤（400）：送出的內容或參數不被接受。可試著縮短訊息、降低長度上限，或重新整理頁面再試。`;
+  // Google 內部錯誤
+  if(status===500||/INTERNAL/i.test(m))
+    return `Google 伺服器錯誤（500）：這是對方暫時的內部問題，跟你的設定無關。稍等一下按「重新生成」即可。`;
+  // 其他
+  return `發生連線錯誤（${status}）：請稍後再試；若持續發生，可重新整理頁面或改用其他模型。`;
+}
 async function streamGemini(onChunk,signal){
   const url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(state.model.trim())}:streamGenerateContent?alt=sse&key=${encodeURIComponent(state.apiKey.trim())}`;
   const contents=state.messages
@@ -890,22 +957,19 @@ async function streamGemini(onChunk,signal){
   const body={
     contents,
     generationConfig:gc,
-    safetySettings:[
-      {category:"HARM_CATEGORY_HARASSMENT",threshold:"BLOCK_NONE"},
-      {category:"HARM_CATEGORY_HATE_SPEECH",threshold:"BLOCK_NONE"},
-      {category:"HARM_CATEGORY_SEXUALLY_EXPLICIT",threshold:"BLOCK_NONE"},
-      {category:"HARM_CATEGORY_DANGEROUS_CONTENT",threshold:"BLOCK_NONE"}
-    ]
+    safetySettings:buildSafetySettings()
   };
   if(sysText.trim())body.systemInstruction={parts:[{text:sysText}]};
 
   const res=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),signal});
   if(!res.ok){
-    let msg=`HTTP ${res.status}`;
-    try{const e=await res.json();if(e.error&&e.error.message)msg=e.error.message;}catch{}
-    if(res.status===429)msg=`__RATE_LIMIT__已達免費額度或速率上限（429）。請稍後再試，或在 Google AI Studio 開通付費 Tier。\n${msg}`;
-    if(res.status===400&&/API key/i.test(msg))msg="金鑰無效，請到設定確認。\n"+msg;
-    throw new Error(msg);
+    let raw=`HTTP ${res.status}`;
+    try{const e=await res.json();if(e.error&&e.error.message)raw=e.error.message;}catch{}
+    const friendly=httpErrorMessage(res.status,raw);
+    // 中文提示為主，原始英文附在後面方便排查（__RATE_LIMIT__ 前綴需保留在最前）
+    const prefix=friendly.startsWith("__RATE_LIMIT__")?"__RATE_LIMIT__":"";
+    const cn=friendly.replace("__RATE_LIMIT__","");
+    throw new Error(prefix+cn+`\n\n（原始訊息：${raw}）`);
   }
   const reader=res.body.getReader();
   const dec=new TextDecoder();
@@ -921,7 +985,11 @@ async function streamGemini(onChunk,signal){
       const js=line.slice(5).trim();
       if(!js||js==="[DONE]")continue;
       let data;try{data=JSON.parse(js);}catch{continue;}
-      if(data.promptFeedback&&data.promptFeedback.blockReason)throw new Error("提示被安全機制攔截："+data.promptFeedback.blockReason);
+      if(data.promptFeedback&&data.promptFeedback.blockReason){
+        const br=data.promptFeedback.blockReason;
+        const brMap={SAFETY:"安全審查",OTHER:"未明原因",BLOCKLIST:"詞彙封鎖",PROHIBITED_CONTENT:"違禁內容"};
+        throw new Error(`__BLOCKED__你送出的內容被 Gemini 內容審查擋下（${brMap[br]||br}），這次請求沒有送進模型。請調整你的訊息或劇情走向再試；若你已把「內容安全」設為全關仍被擋，代表觸發了 Google 端無法關閉的硬性政策。\n\n（原始代碼：${br}）`);
+      }
       const cand=data.candidates&&data.candidates[0];
       if(cand){
         const parts=cand.content&&cand.content.parts;
@@ -1005,13 +1073,21 @@ async function generate(opts){
     }else{
       const raw=err&&err.message?err.message:String(err);
       const isRate=raw.startsWith("__RATE_LIMIT__")||/\b429\b|quota|rate.?limit|exceeded/i.test(raw);
+      const isBlocked=raw.startsWith("__BLOCKED__");
       if(isRate){
         if(!acc.trim()){state.messages.splice(idx,1);} // 拿掉空白回覆泡泡
         const m=raw.match(/retry in ([\d.]+)\s*s/i);
         const mm=raw.match(/model:\s*([\w.\-]+)/i);
         showRateLimit(m?Math.ceil(parseFloat(m[1])):null,(mm?mm[1]:state.model)||state.model);
+      }else if(isBlocked){
+        const body=raw.replace("__BLOCKED__","");
+        state.messages[idx].text=`🚫 內容被審查擋下\n`+body;
+        state.messages[idx].finish="PROHIBITED_CONTENT";
       }else{
-        state.messages[idx].text=(acc?acc+"\n\n":"")+`⚠ 發生錯誤（模型：${state.model}）：\n`+raw;
+        let shown=raw;
+        if(/Failed to fetch|NetworkError|network error|ERR_NETWORK|load failed/i.test(raw))
+          shown="連線失敗：可能是網路不穩、斷線，或被瀏覽器擋下。請確認網路後按「重新生成」再試。\n\n（原始訊息："+raw+"）";
+        state.messages[idx].text=(acc?acc+"\n\n":"")+`⚠ 發生錯誤（模型：${state.model}）：\n`+shown;
       }
     }
   }finally{
@@ -1286,6 +1362,7 @@ function syncForm(){
   $("#f-temp").value=state.temperature;$("#temp-val").textContent=Number(state.temperature).toFixed(2);
   $("#f-tokens").value=state.maxTokens;
   $("#f-thinking").value=String(state.thinking);
+  $("#f-safety").value=state.safety;
 }
 function syncStatus(){$("#f-status").value=state.statusbar;}
 function syncFormat(){$("#f-format").value=state.format;}
@@ -1308,6 +1385,7 @@ $("#f-model-sel").addEventListener("change",e=>{
 $("#f-temp").addEventListener("input",e=>{state.temperature=Number(e.target.value);$("#temp-val").textContent=state.temperature.toFixed(2);saveSettings();});
 $("#f-tokens").addEventListener("input",e=>{state.maxTokens=Math.max(64,Number(e.target.value)||4096);saveSettings();});
 $("#f-thinking").addEventListener("change",e=>{state.thinking=Number(e.target.value);saveSettings();});
+$("#f-safety").addEventListener("change",e=>{state.safety=e.target.value;saveSettings();});
 
 /* 我的角色（玩家角色）：套用到所有角色，存在本機並隨備份/雲端同步 */
 function personaBlock(){
