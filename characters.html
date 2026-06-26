@@ -168,7 +168,7 @@ header{
 
 /* ---- 對話區 ---- */
 main{flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;}
-.thread{max-width:var(--read);margin:0 auto;padding:34px clamp(16px,5vw,8px) 40px;}
+.thread{max-width:var(--read);margin:0 auto;padding:34px clamp(16px,5vw,28px) 40px;}
 .empty{
   max-width:var(--read);margin:0 auto;padding:18vh 24px;text-align:center;color:var(--text-faint);
 }
@@ -227,7 +227,7 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;}
 
 /* ---- 輸入列 ---- */
 footer{flex:0 0 auto;border-top:1px solid var(--border-soft);background:linear-gradient(to top,rgba(var(--shadow-rgb),.7),rgba(var(--shadow-rgb),0));backdrop-filter:blur(6px);}
-.composer{max-width:var(--read);margin:0 auto;padding:14px clamp(14px,5vw,8px) 10px;display:flex;gap:10px;align-items:flex-end;}
+.composer{max-width:var(--read);margin:0 auto;padding:14px clamp(14px,5vw,28px) 10px;display:flex;gap:10px;align-items:flex-end;}
 .footlinks{max-width:var(--read);margin:0 auto;display:flex;justify-content:center;align-items:center;gap:16px;padding:0 14px calc(10px + env(safe-area-inset-bottom));}
 .foot-btn{background:transparent;border:1px solid var(--border);border-radius:9px;padding:6px 14px;font-size:.78rem;color:var(--text-dim);cursor:pointer;transition:border-color .18s,color .18s,background .18s;font-family:var(--sans);white-space:nowrap;}
 .foot-btn:hover{border-color:var(--accent);color:var(--text);background:rgba(var(--accent-rgb),.06);}
@@ -386,9 +386,9 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
 .cs-foot a{font-size:.74rem;color:var(--text-faint);text-decoration:none;letter-spacing:.05em;}
 .cs-foot a:hover{color:var(--text-dim);text-decoration:underline;}
 
-/* ---- 角色編輯視窗 ---- */
-#chareditor,#persona,#docview,#ratelimit{position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;padding:22px;}
-#chareditor.show,#persona.show,#docview.show,#ratelimit.show{display:flex;}
+/* ---- 文件檢視 / 速率限制視窗 ---- */
+#persona,#docview,#ratelimit{position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;padding:22px;}
+#persona.show,#docview.show,#ratelimit.show{display:flex;}
 .ce-backdrop{position:absolute;inset:0;background:rgba(var(--shadow-rgb),.66);backdrop-filter:blur(2px);}
 .ce-card{position:relative;z-index:1;width:min(520px,100%);max-height:88dvh;overflow-y:auto;background:var(--bg-2);border:1px solid var(--border);border-radius:18px;padding:28px;}
 .ce-card h2{font-family:var(--serif);font-weight:500;font-size:1.25rem;margin:0 0 6px;letter-spacing:.03em;}
@@ -399,7 +399,6 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
 .ce-del:hover{border-color:var(--danger);color:var(--danger);}
 .ce-cancel{color:var(--text-dim);}
 .ce-cancel:hover{color:var(--text);border-color:var(--text-faint);}
-#ce-save{padding:9px 22px;}
 
 /* ---- 年齡確認入口 ---- */
 #agegate{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;
@@ -562,7 +561,7 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
     <div class="field-sec">備份與還原（推薦）</div>
     <div class="field">
       <label>對話紀錄備份 <span class="tip">換手機、換電腦時用</span></label>
-      <p class="note">對話只存在這台瀏覽器。最簡單的方法就是把全部角色的紀錄匯出成一個檔案，到另一台裝置打開同一個網站、再匯入，就能接著聊。為安全起見，備份檔<strong>不含</strong>你的 API 金鑰。</p>
+      <p class="note">對話與設定只存在這台瀏覽器。最簡單的方法就是把全部資料匯出成一個檔案，到另一台裝置打開同一個網站、再匯入，就能接著聊。為安全起見，備份檔<strong>不含 API 金鑰，也不含 OAuth Client ID</strong>，這兩項要在新裝置各自重貼一次。</p>
       <div class="backup-row">
         <button class="btn-sm" id="btn-backup">匯出備份檔</button>
         <button class="btn-sm" id="btn-restore">匯入備份檔</button>
@@ -699,25 +698,6 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px;}
   </div>
 </div>
 
-<div id="chareditor">
-  <div class="ce-backdrop" id="ce-backdrop"></div>
-  <div class="ce-card">
-    <h2 id="ce-title">新增角色</h2>
-    <label>角色名稱</label>
-    <input type="text" id="ce-name" placeholder="例如：角色的名字">
-    <label>角色設定（系統提示）</label>
-    <textarea class="tall" id="ce-system" placeholder="描述這個角色的身分、性格、說話風格，以及書寫規則…"></textarea>
-    <label>開場白 <span class="tip">每次「新對話」由此開場，可留空</span></label>
-    <textarea class="mid" id="ce-opening"></textarea>
-    <div class="ce-btns">
-      <button class="ce-del" id="ce-del">刪除</button>
-      <span class="spacer"></span>
-      <button class="ce-cancel" id="ce-cancel">取消</button>
-      <button class="btn-sm" id="ce-save">儲存</button>
-    </div>
-  </div>
-</div>
-
 <div id="agegate">
   <div class="gate-card">
     <div class="gate-mark"></div>
@@ -804,7 +784,6 @@ function renderBody(text,isStreaming){
 
 /* ============ 載入／儲存 ============ */
 function msgKey(id){return "airp_msgs_"+id;}
-function saveCharacters(){store.set("airp_characters",JSON.stringify(state.characters));}
 function loadState(){
   try{const s=store.get("airp_settings");if(s){const o=JSON.parse(s);
     if(o.apiKey!=null)state.apiKey=o.apiKey;
@@ -853,9 +832,12 @@ let saveTimer;
 function saveSettings(){
   clearTimeout(saveTimer);
   saveTimer=setTimeout(()=>{
-    store.set("airp_settings",JSON.stringify({
+    // 用 merge 而非覆寫：保留本頁未操作的欄位（例如 chat.html 設定的 safety）
+    let existing={};
+    try{existing=JSON.parse(store.get("airp_settings")||"{}");}catch{}
+    store.set("airp_settings",JSON.stringify(Object.assign({},existing,{
       apiKey:state.apiKey,model:state.model,temperature:state.temperature,maxTokens:state.maxTokens,thinking:state.thinking
-    }));
+    })));
   },250);
 }
 function saveMessages(){if(state.activeId)store.set(msgKey(state.activeId),JSON.stringify(state.messages));if(typeof scheduleCloudPush==="function")scheduleCloudPush();}
@@ -1101,20 +1083,55 @@ $("#btn-export").addEventListener("click",()=>{
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 });
 
-/* ============ 備份 / 還原（整包對話） ============ */
+/* ============ 備份 / 還原（整包對話＋設定） ============ */
+// 備份白名單：列在這裡的 key 會被打包進備份檔／雲端同步。
+// 排除的兩項機密：API 金鑰（在 airp_settings.apiKey 內，由 stripSecrets 拔掉）、OAuth Client ID（airp_gclient 不在白名單內）。
+const BACKUP_KEY_PREFIXES=["airp_msgs_","airp_persona_"];
+const BACKUP_KEYS=["airp_settings","airp_gauto","airp_format","airp_status","airp_persona","airp_active","airp_theme"];
+function isBackupKey(k){
+  if(!k)return false;
+  if(BACKUP_KEYS.indexOf(k)>=0)return true;
+  return BACKUP_KEY_PREFIXES.some(p=>k.startsWith(p));
+}
+function stripSecrets(k,v){
+  if(k!=="airp_settings"||v==null)return v;
+  try{
+    const o=JSON.parse(v);
+    if(o&&typeof o==="object")delete o.apiKey;
+    return JSON.stringify(o);
+  }catch{return v;}
+}
+function applyRestoredKey(k,v){
+  if(k==="airp_settings"){
+    try{
+      const incoming=JSON.parse(v||"{}");
+      delete incoming.apiKey; // 防禦：絕不從外部還原 apiKey
+      const localRaw=store.get("airp_settings");
+      const local=localRaw?JSON.parse(localRaw):{};
+      if(local&&local.apiKey)incoming.apiKey=local.apiKey;
+      store.set(k,JSON.stringify(incoming));
+      return;
+    }catch{}
+  }
+  store.set(k,v);
+}
 function collectBackup(){
   const data={};
   try{
     for(let i=0;i<localStorage.length;i++){
-      const k=localStorage.key(i);if(!k)continue;
-      if(k==="airp_key")continue; // 不備份金鑰
-      if(k.startsWith("airp_msgs_")||k.startsWith("airp_persona_")||k==="airp_format"||k==="airp_status"||k==="airp_persona"||k==="airp_active"||k==="airp_theme")data[k]=localStorage.getItem(k);
+      const k=localStorage.key(i);
+      if(!isBackupKey(k))continue;
+      data[k]=stripSecrets(k,localStorage.getItem(k));
     }
   }catch{}
-  if(Object.keys(data).length===0){ // 後備：localStorage 不可用時，從已載入角色取
-    for(const c of state.characters){const v=store.get(msgKey(c.id));if(v!=null)data[msgKey(c.id)]=v;const pv=store.get("airp_persona_"+c.id);if(pv!=null)data["airp_persona_"+c.id]=pv;}
-    const f=store.get("airp_format");if(f!=null)data["airp_format"]=f;const st=store.get("airp_status");if(st!=null)data["airp_status"]=st;const pe=store.get("airp_persona");if(pe!=null)data["airp_persona"]=pe;
-    const a=store.get("airp_active");if(a!=null)data["airp_active"]=a;
+  if(Object.keys(data).length===0){ // 後備：localStorage 不可用時，從 store 取
+    for(const c of state.characters){
+      const v=store.get(msgKey(c.id));if(v!=null)data[msgKey(c.id)]=v;
+      const pv=store.get("airp_persona_"+c.id);if(pv!=null)data["airp_persona_"+c.id]=pv;
+    }
+    for(const k of BACKUP_KEYS){
+      const v=store.get(k);if(v!=null)data[k]=stripSecrets(k,v);
+    }
   }
   return data;
 }
@@ -1137,10 +1154,10 @@ $("#restore-file").addEventListener("change",async e=>{
   try{payload=JSON.parse(await file.text());}catch{toast("檔案讀取失敗，格式不正確");return;}
   const data=payload&&payload.data;
   if(!payload||payload.app!=="kimmchii-airp"||!data||typeof data!=="object"){toast("這不是有效的對戲備份檔");return;}
-  const keys=Object.keys(data).filter(k=>k.startsWith("airp_msgs_")||k.startsWith("airp_persona_")||k==="airp_format"||k==="airp_status"||k==="airp_persona"||k==="airp_active"||k==="airp_theme");
-  if(!keys.length){toast("備份檔裡沒有可還原的對話");return;}
-  if(!confirm("匯入會以備份檔的內容覆蓋對應角色的對話紀錄，確定要還原嗎？"))return;
-  for(const k of keys){try{store.set(k,data[k]);}catch{}}
+  const keys=Object.keys(data).filter(isBackupKey);
+  if(!keys.length){toast("備份檔裡沒有可還原的內容");return;}
+  if(!confirm("匯入會以備份檔的內容覆蓋對應角色的對話紀錄與這台裝置的設定（API 金鑰會保留），確定要還原嗎？"))return;
+  for(const k of keys){try{applyRestoredKey(k,data[k]);}catch{}}
   toast("已還原，正在重新載入…");
   setTimeout(()=>location.reload(),700);
 });
@@ -1222,9 +1239,9 @@ async function gsPull(){
     if(!r.ok)throw new Error("下載失敗");
     const p=await r.json();
     if(!p||p.app!=="kimmchii-airp"||!p.data){toast("雲端檔格式不符");return;}
-    if(!confirm("從雲端下載會覆蓋這台裝置對應角色的對話，確定嗎？"))return;
-    const keys=Object.keys(p.data).filter(k=>k.startsWith("airp_msgs_")||k.startsWith("airp_persona_")||k==="airp_format"||k==="airp_status"||k==="airp_persona"||k==="airp_active"||k==="airp_theme");
-    for(const k of keys){try{store.set(k,p.data[k]);}catch{}}
+    if(!confirm("從雲端下載會覆蓋這台裝置對應角色的對話與設定（API 金鑰與 OAuth Client ID 保留），確定嗎？"))return;
+    const keys=Object.keys(p.data).filter(isBackupKey);
+    for(const k of keys){try{applyRestoredKey(k,p.data[k]);}catch{}}
     gsStatus("已下載，重新載入中…");setTimeout(()=>location.reload(),700);
   }catch(e){gsStatus("下載失敗："+(e.message||e));toast("下載失敗："+(e.message||e));}
 }
@@ -1423,59 +1440,8 @@ function activate(id){
 }
 
 $("#cs-grid").addEventListener("click",e=>{
-  const act=e.target.closest("button[data-cact]");
-  if(act){
-    const id=act.dataset.id,a=act.dataset.cact;
-    const c=state.characters.find(x=>x.id===id);if(!c)return;
-    if(a==="edit"){openCardEditor(id);}
-    else if(a==="del"){
-      const at=state.characters.indexOf(c);
-      state.characters.splice(at,1);saveCharacters();renderCharSelect();
-      toast(`已刪除「${c.name}」`,()=>{state.characters.splice(at,0,c);saveCharacters();renderCharSelect();});
-    }
-    return;
-  }
-  if(e.target.closest("#card-add")){openCardEditor(null);return;}
   const card=e.target.closest(".card[data-id]");
   if(card)openIntro(card.dataset.id);
-});
-
-/* ---- 角色編輯視窗 ---- */
-let editorId=null;
-function openCardEditor(id){
-  editorId=id;
-  const c=id?state.characters.find(x=>x.id===id):null;
-  $("#ce-title").textContent=c?"編輯角色":"新增角色";
-  $("#ce-name").value=c?c.name:"";
-  $("#ce-system").value=c?c.system:"";
-  $("#ce-opening").value=c?c.opening:"";
-  $("#ce-del").style.display=c?"":"none";
-  $("#chareditor").classList.add("show");
-  $("#ce-name").focus();
-}
-function closeCardEditor(){$("#chareditor").classList.remove("show");editorId=null;}
-$("#ce-cancel").addEventListener("click",closeCardEditor);
-$("#ce-backdrop").addEventListener("click",closeCardEditor);
-$("#ce-save").addEventListener("click",()=>{
-  const name=$("#ce-name").value.trim()||"未命名角色";
-  const system=$("#ce-system").value;
-  const opening=$("#ce-opening").value;
-  if(editorId){
-    const c=state.characters.find(x=>x.id===editorId);
-    if(c){c.name=name;c.system=system;c.opening=opening;}
-    if(editorId===state.activeId){state.charName=name;state.systemPrompt=system;state.opening=opening;renderChat();}
-  }else{
-    state.characters.push({id:"c"+Date.now().toString(36),name,system,opening});
-  }
-  saveCharacters();renderCharSelect();closeCardEditor();
-  toast("已儲存角色");
-});
-$("#ce-del").addEventListener("click",()=>{
-  if(!editorId)return;
-  const c=state.characters.find(x=>x.id===editorId);if(!c)return;
-  const at=state.characters.indexOf(c);
-  state.characters.splice(at,1);saveCharacters();renderCharSelect();closeCardEditor();
-  toast(`已刪除「${c.name}」`,()=>{state.characters.splice(at,0,c);saveCharacters();renderCharSelect();});
 });
 
 $("#btn-chars").addEventListener("click",()=>{
