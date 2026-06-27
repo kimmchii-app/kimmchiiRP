@@ -12,6 +12,14 @@
 <link rel="stylesheet" href="assets/theme.css">
 <style>
 #p-save{padding:9px 22px;}
+#events{position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;padding:22px;}
+#events.show{display:flex;}
+.ev-list{display:flex;flex-direction:column;gap:8px;margin-top:14px;max-height:55dvh;overflow-y:auto;}
+.ev-item{text-align:left;background:var(--surface-2);border:1px solid var(--border-soft);border-radius:11px;padding:12px 14px;cursor:pointer;transition:border-color .15s,background .15s;font-family:var(--sans);color:var(--text);}
+.ev-item:hover{border-color:var(--accent);background:rgba(var(--accent-rgb),.08);}
+.ev-name{font-family:var(--serif);font-size:1rem;color:var(--text);margin-bottom:4px;letter-spacing:.03em;}
+.ev-preview{font-size:.79rem;color:var(--text-dim);line-height:1.7;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.ev-empty{color:var(--text-faint);font-size:.85rem;padding:18px 6px;text-align:center;line-height:1.8;}
 #importpreview{position:fixed;inset:0;z-index:120;display:none;}
 #importpreview.show{display:block;}
 #importpreview .ce-card{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);max-width:520px;width:calc(100% - 32px);max-height:88vh;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px 22px 18px;z-index:121;box-shadow:0 12px 32px rgba(var(--shadow-rgb),.4);}
@@ -51,6 +59,7 @@
   <footer>
     <div class="composer">
       <button class="compose-btn" id="btn-persona" title="我的角色" aria-label="我的角色">✎</button>
+      <button class="compose-btn" id="btn-events" title="切換事件 / 情境" aria-label="事件">✦</button>
       <textarea id="input" rows="1" placeholder="寫下你的行動或對白…（Enter 送出，Shift+Enter 換行）"></textarea>
       <button class="send" id="btn-send">送出</button>
     </div>
@@ -315,6 +324,19 @@
   </div>
 </div>
 
+<div id="events">
+  <div class="ce-backdrop" id="events-backdrop"></div>
+  <div class="ce-card">
+    <h2>切換事件 / 情境</h2>
+    <p class="note" style="margin-top:0">選一個事件，把它的開場白接在當前對話末尾作為新場景；歷史不會被清掉。事件清單在角色資料夾的 <code>character.json</code> 內以 <code>events</code> 陣列定義。</p>
+    <div class="ev-list" id="ev-list"></div>
+    <div class="ce-btns">
+      <span class="spacer"></span>
+      <button class="ce-cancel" id="events-cancel">取消</button>
+    </div>
+  </div>
+</div>
+
 <div id="importpick">
   <div class="ce-backdrop" id="impk-backdrop"></div>
   <div class="ce-card" style="max-width:440px">
@@ -383,7 +405,7 @@ let state={
   apiKey:"",model:"gemini-2.5-flash",temperature:0.95,maxTokens:8192,thinking:0,safety:"off",
   charName:DEFAULT_NAME,systemPrompt:DEFAULT_SYSTEM,opening:DEFAULT_OPENING,format:DEFAULT_FORMAT,statusbar:DEFAULT_STATUS,
   persona:{name:"",age:"",look:"",desc:""},
-  messages:[],characters:[],activeId:null
+  messages:[],characters:[],activeId:null,events:[]
 };
 let streaming=false,currentAbort=null,editingIndex=null;
 let lastUsage=null; // 最近一次 API 回覆的 token 用量（usageMetadata）
@@ -442,7 +464,17 @@ async function loadCharacters(){
         // 附加設定檔（NPC、世界觀、場景…）：可填單一字串或陣列，依序接在角色提示詞後面
         const extras=Array.isArray(c.extraFiles)?c.extraFiles:(c.extraFiles?[c.extraFiles]:[]);
         for(const ef of extras){try{const r=await fetch(base+encodeURIComponent(ef),{cache:"no-store"});if(r.ok){const t=await r.text();if(t.trim()){extraDocs.push({name:ef,text:t});system+=(system?"\n\n":"")+t;}}}catch{}}
-        list.push({id,name:c.name||f,system,opening,image,intro,mainText,extraDocs});
+        // 事件 / 情境清單：每筆需有 name 與 opening（或 openingFile 指向 .md）。runtime 由「事件」按鈕插入到對話末尾。
+        const events=[];
+        const evDefs=Array.isArray(c.events)?c.events:[];
+        for(let ei=0;ei<evDefs.length;ei++){
+          const e=evDefs[ei];if(!e)continue;
+          let evOpening=e.opening||"";
+          if(e.openingFile){try{const r=await fetch(base+encodeURIComponent(e.openingFile),{cache:"no-store"});if(r.ok)evOpening=await r.text();}catch{}}
+          if(!evOpening||!evOpening.trim())continue;
+          events.push({id:e.id||("ev_"+ei),name:e.name||("事件 "+(ei+1)),opening:evOpening});
+        }
+        list.push({id,name:c.name||f,system,opening,image,intro,mainText,extraDocs,events});
       }catch{}
     }
     if(list.length){state.characters=list;return;}
@@ -1051,6 +1083,43 @@ $("#p-save").addEventListener("click",()=>{
   toast("已儲存我的角色");
 });
 
+/* 事件 / 情境：把該事件的 opening 當作一則 model 訊息接在當前對話末尾，作為新場景 */
+function openEvents(){
+  if(streaming){toast("生成中，請先停止");return;}
+  const box=$("#ev-list");
+  const list=state.events||[];
+  if(!list.length){
+    box.innerHTML=`<div class="ev-empty">這個角色沒有設定事件。<br>可在 <code>character/&lt;角色&gt;/character.json</code> 加 <code>events</code> 陣列，每筆需有 <code>name</code> 與 <code>opening</code>（或 <code>openingFile</code> 指向 .md）。</div>`;
+  }else{
+    box.innerHTML=list.map(e=>{
+      const preview=esc((e.opening||"").trim().replace(/\s+/g," ").slice(0,80));
+      return `<button class="ev-item" data-id="${esc(e.id)}">
+        <div class="ev-name">${esc(e.name)}</div>
+        <div class="ev-preview">${preview}</div>
+      </button>`;
+    }).join("");
+  }
+  $("#events").classList.add("show");
+}
+function closeEvents(){$("#events").classList.remove("show");}
+$("#btn-events").addEventListener("click",openEvents);
+$("#events-cancel").addEventListener("click",closeEvents);
+$("#events-backdrop").addEventListener("click",closeEvents);
+$("#ev-list").addEventListener("click",e=>{
+  const it=e.target.closest(".ev-item[data-id]");if(!it)return;
+  if(streaming){toast("生成中，請先停止");return;}
+  const ev=(state.events||[]).find(x=>x.id===it.dataset.id);
+  if(!ev)return;
+  // 在對話末尾插入新場景；保留前面所有歷史。提供「復原」回到剛剛的狀態。
+  const snapshot=state.messages.slice();
+  state.messages.push({role:"model",text:ev.opening});
+  editingIndex=null;
+  renderChat();saveMessages();
+  setTimeout(scrollDown,0);
+  closeEvents();
+  toast(`已插入事件：${ev.name}`,()=>{state.messages=snapshot;renderChat();saveMessages();});
+});
+
 /* 共用書寫格式：預設來自 character/format.md，使用者可在設定裡覆蓋（存在本機） */
 let fmtTimer;
 function saveFormat(){clearTimeout(fmtTimer);fmtTimer=setTimeout(()=>store.set("airp_format",state.format),250);}
@@ -1147,6 +1216,7 @@ function activate(id){
   const c=state.characters.find(x=>x.id===id);if(!c)return;
   state.activeId=id;store.set("airp_active",id);
   state.charName=c.name;state.systemPrompt=c.system;state.opening=c.opening;
+  state.events=Array.isArray(c.events)?c.events:[];
   loadPersona();
   const raw=store.get(msgKey(id));
   if(raw!=null){try{state.messages=JSON.parse(raw)||[];}catch{state.messages=[];}}
