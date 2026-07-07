@@ -16,6 +16,14 @@
 #events.show{display:flex;}
 #summary{position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;padding:22px;}
 #summary.show{display:flex;}
+.composer{position:relative;}
+.tools-wrap{position:relative;flex:0 0 auto;align-self:flex-end;}
+.tools-menu{position:absolute;bottom:calc(100% + 8px);left:0;min-width:150px;display:none;flex-direction:column;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px;box-shadow:0 10px 28px rgba(var(--shadow-rgb),.4);z-index:60;}
+.tools-menu.show{display:flex;}
+.tools-item{display:flex;align-items:center;gap:10px;text-align:left;white-space:nowrap;background:transparent;border:none;border-radius:8px;padding:11px 13px;font-size:.92rem;color:var(--text);font-family:var(--sans);cursor:pointer;transition:background .15s;}
+.tools-item:hover{background:rgba(var(--accent-rgb),.1);}
+.tools-item .ti-ic{width:1.2em;text-align:center;color:var(--text-dim);font-size:1.05rem;}
+#btn-tools.open{border-color:var(--accent);color:var(--text);}
 .ev-list{display:flex;flex-direction:column;gap:8px;margin-top:14px;max-height:55dvh;overflow-y:auto;}
 .ev-item{text-align:left;background:var(--surface-2);border:1px solid var(--border-soft);border-radius:11px;padding:12px 14px;cursor:pointer;transition:border-color .15s,background .15s;font-family:var(--sans);color:var(--text);}
 .ev-item:hover{border-color:var(--accent);background:rgba(var(--accent-rgb),.08);}
@@ -60,9 +68,14 @@
 
   <footer>
     <div class="composer">
-      <button class="compose-btn" id="btn-persona" title="我的角色" aria-label="我的角色">✎</button>
-      <button class="compose-btn" id="btn-events" title="切換事件 / 情境" aria-label="事件">✦</button>
-      <button class="compose-btn" id="btn-summary" title="劇情摘要（前情提要）" aria-label="劇情摘要">▤</button>
+      <div class="tools-wrap">
+        <div class="tools-menu" id="tools-menu">
+          <button class="tools-item" data-open="persona"><span class="ti-ic">✎</span>設定自己</button>
+          <button class="tools-item" data-open="events"><span class="ti-ic">✦</span>事件</button>
+          <button class="tools-item" data-open="summary"><span class="ti-ic">▤</span>劇情摘要</button>
+        </div>
+        <button class="compose-btn" id="btn-tools" title="設定自己 / 事件 / 摘要" aria-label="工具選單" aria-haspopup="true" aria-expanded="false">✎</button>
+      </div>
       <textarea id="input" rows="1" placeholder="寫下你的行動或對白…（Enter 送出，Shift+Enter 換行）"></textarea>
       <button class="send" id="btn-send">送出</button>
     </div>
@@ -1231,6 +1244,34 @@ $("#sum-clear").addEventListener("click",()=>{
   $("#sum-text").value="";
   const cover=$("#sum-cover");if(cover)cover.textContent="已清空，之後會重新以完整歷史對話並在滿 "+SUMMARY_EVERY_PAGES+" 頁後重新摘要。";
   toast("已清空劇情摘要");
+});
+
+/* 工具選單：把「設定自己 / 事件 / 摘要」收合成一顆 ✎ 按鈕（手機版省空間） */
+function closeToolsMenu(){
+  const menu=document.getElementById("tools-menu"),btn=document.getElementById("btn-tools");
+  if(menu)menu.classList.remove("show");
+  if(btn){btn.classList.remove("open");btn.setAttribute("aria-expanded","false");}
+}
+function toggleToolsMenu(){
+  const menu=document.getElementById("tools-menu"),btn=document.getElementById("btn-tools");
+  if(!menu)return;
+  const open=!menu.classList.contains("show");
+  menu.classList.toggle("show",open);
+  if(btn){btn.classList.toggle("open",open);btn.setAttribute("aria-expanded",open?"true":"false");}
+}
+$("#btn-tools").addEventListener("click",e=>{e.stopPropagation();toggleToolsMenu();});
+$("#tools-menu").addEventListener("click",e=>{
+  const it=e.target.closest(".tools-item");if(!it)return;
+  closeToolsMenu();
+  const which=it.getAttribute("data-open");
+  if(which==="persona")openPersona();
+  else if(which==="events")openEvents();
+  else if(which==="summary")openSummary();
+});
+// 點選單以外的地方就收起
+document.addEventListener("click",e=>{
+  const menu=document.getElementById("tools-menu");
+  if(menu&&menu.classList.contains("show")&&!e.target.closest(".tools-wrap"))closeToolsMenu();
 });
 
 /* 事件 / 情境：把該事件的 opening 當作一則 model 訊息接在當前對話末尾，作為新場景 */
