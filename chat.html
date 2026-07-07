@@ -14,6 +14,8 @@
 #p-save{padding:9px 22px;}
 #events{position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;padding:22px;}
 #events.show{display:flex;}
+#summary{position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;padding:22px;}
+#summary.show{display:flex;}
 .ev-list{display:flex;flex-direction:column;gap:8px;margin-top:14px;max-height:55dvh;overflow-y:auto;}
 .ev-item{text-align:left;background:var(--surface-2);border:1px solid var(--border-soft);border-radius:11px;padding:12px 14px;cursor:pointer;transition:border-color .15s,background .15s;font-family:var(--sans);color:var(--text);}
 .ev-item:hover{border-color:var(--accent);background:rgba(var(--accent-rgb),.08);}
@@ -60,6 +62,7 @@
     <div class="composer">
       <button class="compose-btn" id="btn-persona" title="我的角色" aria-label="我的角色">✎</button>
       <button class="compose-btn" id="btn-events" title="切換事件 / 情境" aria-label="事件">✦</button>
+      <button class="compose-btn" id="btn-summary" title="劇情摘要（前情提要）" aria-label="劇情摘要">▤</button>
       <textarea id="input" rows="1" placeholder="寫下你的行動或對白…（Enter 送出，Shift+Enter 換行）"></textarea>
       <button class="send" id="btn-send">送出</button>
     </div>
@@ -337,6 +340,22 @@
   </div>
 </div>
 
+<div id="summary">
+  <div class="ce-backdrop" id="sum-backdrop"></div>
+  <div class="ce-card">
+    <h2>劇情摘要</h2>
+    <p class="note" style="margin-top:0">這是提供給 AI 用來「延續劇情」的前情提要，每滿 20 頁會自動更新一次。你可以在這裡查看它記住了什麼，若有摘錯或漏掉的地方也可以直接修改後儲存，之後 AI 會沿用你改過的版本。</p>
+    <p class="note" id="sum-cover" style="margin-top:0">尚未產生摘要。</p>
+    <textarea class="tall" id="sum-text" placeholder="還沒有摘要內容。聊到一定頁數後會自動生成；你也可以在這裡手動寫下前情提要。"></textarea>
+    <div class="ce-btns">
+      <button class="ce-del" id="sum-clear">清空</button>
+      <span class="spacer"></span>
+      <button class="ce-cancel" id="sum-cancel">取消</button>
+      <button class="btn-sm" id="sum-save">儲存</button>
+    </div>
+  </div>
+</div>
+
 <div id="importpick">
   <div class="ce-backdrop" id="impk-backdrop"></div>
   <div class="ce-card" style="max-width:440px">
@@ -405,9 +424,14 @@ let state={
   apiKey:"",model:"gemini-2.5-flash",temperature:0.95,maxTokens:8192,thinking:0,safety:"off",
   charName:DEFAULT_NAME,systemPrompt:DEFAULT_SYSTEM,opening:DEFAULT_OPENING,format:DEFAULT_FORMAT,statusbar:DEFAULT_STATUS,
   persona:{name:"",age:"",look:"",desc:""},
-  messages:[],characters:[],activeId:null,events:[]
+  messages:[],characters:[],activeId:null,events:[],
+  summary:{text:"",until:0,pages:0} // 劇情摘要：text=累積前情提要；until=已折進摘要的訊息數（陣列前 until 則）；pages=上次摘要時的總頁數（供「每 20 頁」計數）
 };
 let streaming=false,currentAbort=null,editingIndex=null;
+let summarizing=false; // 摘要生成中的旗標，避免重複觸發
+/* 劇情摘要參數 */
+const SUMMARY_EVERY_PAGES=20; // 每累積 20 頁（AI 回覆）壓一次摘要
+const SUMMARY_KEEP_TAIL=6;    // 摘要後仍保留最近這麼多則原文，維持近況精準度
 let lastUsage=null; // 最近一次 API 回覆的 token 用量（usageMetadata）
 
 /* ============ 工具 ============ */
@@ -493,6 +517,18 @@ function saveSettings(){
   },250);
 }
 function saveMessages(){if(state.activeId)store.set(msgKey(state.activeId),JSON.stringify(state.messages));if(typeof scheduleCloudPush==="function")scheduleCloudPush();}
+function sumKey(id){return "airp_sum_"+id;}
+function saveSummary(){if(state.activeId)store.set(sumKey(state.activeId),JSON.stringify(state.summary));if(typeof scheduleCloudPush==="function")scheduleCloudPush();}
+function loadSummary(id){
+  try{const raw=store.get(sumKey(id));if(raw!=null){const o=JSON.parse(raw);
+    state.summary={
+      text:(o&&o.text)||"",
+      until:(o&&Number.isInteger(o.until))?o.until:0,
+      pages:(o&&Number.isInteger(o.pages))?o.pages:0
+    };return;}}catch{}
+  state.summary={text:"",until:0,pages:0};
+}
+function resetSummary(){state.summary={text:"",until:0,pages:0};saveSummary();}
 
 /* ============ Gemini 串流呼叫 ============ */
 // 把 Gemini 的 finishReason 翻成人話，方便判斷截斷原因
@@ -565,10 +601,16 @@ function httpErrorMessage(status,rawMsg){
 }
 async function streamGemini(onChunk,signal){
   const url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(state.model.trim())}:streamGenerateContent?alt=sse&key=${encodeURIComponent(state.apiKey.trim())}`;
+  // 劇情摘要：前 until 則已被壓成摘要，這裡只逐字送出 until 之後的訊息，較舊的內容改由摘要提供延續。
+  const until=Math.max(0,Math.min(state.summary.until||0,state.messages.length));
   const contents=state.messages
+    .slice(until)
     .filter(m=>m.text&&m.text.trim()!=="")
     .map(m=>({role:m.role==="user"?"user":"model",parts:[{text:m.text}]}));
-  const sysText=(state.charName?`角色名稱：${state.charName}\n`:"")+(state.systemPrompt||"")+(state.format&&state.format.trim()?"\n\n"+state.format:"")+(state.statusbar&&state.statusbar.trim()?"\n\n"+state.statusbar:"")+personaBlock();
+  const sumBlock=(state.summary.text&&state.summary.text.trim())
+    ?"\n\n# 先前劇情摘要（前情提要，用來延續劇情）\n以下是本故事到目前為止已發生的劇情濃縮；請把它當成真實發生過的既定事實，延續其中的時間線、地點、關係與未解伏筆，不要與之矛盾，也不要當成沒發生過。\n"+state.summary.text.trim()
+    :"";
+  const sysText=(state.charName?`角色名稱：${state.charName}\n`:"")+(state.systemPrompt||"")+(state.format&&state.format.trim()?"\n\n"+state.format:"")+(state.statusbar&&state.statusbar.trim()?"\n\n"+state.statusbar:"")+personaBlock()+sumBlock;
   const gc={temperature:Number(state.temperature),maxOutputTokens:Number(state.maxTokens)};
   const ml=state.model.trim().toLowerCase();
   const tb=Number(state.thinking); // 0 / 512 / 1024 / -1
@@ -654,6 +696,7 @@ async function generate(opts){
   streaming=true;updateSendBtn();
   // 接續模式：不另開新泡泡，把生成內容接到原本被截斷的那則
   const isCont=Number.isInteger(opts.continueFromIndex);
+  let genOk=false; // 這次是否成功生成了實際內容（供摘要觸發判斷）
   let idx;
   if(isCont){idx=opts.continueFromIndex;}
   else{state.messages.push({role:"model",text:""});idx=state.messages.length-1;}
@@ -690,6 +733,7 @@ async function generate(opts){
       state.messages[idx].text="…（"+info.short+"）"+info.desc;
       state.messages[idx].truncated=false;
     }
+    genOk=!!acc.trim();
   }catch(err){
     if(err&&err.name==="AbortError"){
       if(isCont)stripContPrompt();
@@ -718,6 +762,7 @@ async function generate(opts){
   }finally{
     streaming=false;currentAbort=null;updateSendBtn();
     renderChat();saveMessages();
+    if(genOk)maybeSummarize();
   }
 }
 
@@ -737,6 +782,79 @@ async function continueGen(i){
   state.messages.push({role:"user",text:"請從你剛才被截斷的地方接著寫下去，不要重複前文、不要重述、也不要重新開頭，直接以該句的下一個字繼續，直到自然收尾並附上狀態欄。"});
   renderChat();
   await generate({continueFromIndex:i});
+}
+
+/* ============ 劇情摘要（每 SUMMARY_EVERY_PAGES 頁把較舊劇情壓成前情提要） ============ */
+// 計算陣列 fromIdx 之後的「頁數」＝有實際內容的 model 回覆數
+function countPages(fromIdx){
+  let n=0;
+  for(let k=Math.max(0,fromIdx);k<state.messages.length;k++){
+    const m=state.messages[k];
+    if(m.role==="model"&&m.text&&m.text.trim())n++;
+  }
+  return n;
+}
+function maybeSummarize(){
+  if(summarizing||streaming)return;
+  const totalPages=countPages(0);
+  if(totalPages-(state.summary.pages||0)>=SUMMARY_EVERY_PAGES)runSummary();
+}
+async function runSummary(){
+  if(summarizing||streaming)return;
+  if(!state.apiKey.trim())return;
+  const totalPages=countPages(0);
+  const startUntil=Math.max(0,Math.min(state.summary.until||0,state.messages.length));
+  // 保留最近 SUMMARY_KEEP_TAIL 則原文，只把更舊的折進摘要，維持近況的精準度
+  const foldEnd=Math.max(startUntil,state.messages.length-SUMMARY_KEEP_TAIL);
+  const window=state.messages.slice(startUntil,foldEnd).filter(m=>m.text&&m.text.trim());
+  if(!window.length)return;
+  summarizing=true;
+  const activeIdAtStart=state.activeId;
+  try{
+    const who=state.charName||"角色";
+    const transcript=window.map(m=>(m.role==="user"?"我":who)+"：\n"+m.text.trim()).join("\n\n");
+    const prior=state.summary.text&&state.summary.text.trim()
+      ?"這是先前已整理好的、更早劇情的摘要：\n"+state.summary.text.trim()+"\n\n"
+      :"";
+    const prompt=
+`你是這個角色扮演故事的劇情記錄員。請把下面的劇情整理成一份「累積前情提要」，供之後延續劇情使用。
+
+${prior}以下是需要納入摘要的劇情（「我」是使用者的角色，「${who}」是對方角色）：
+${transcript}
+
+請輸出一份「整合後的完整累積摘要」（把先前摘要與新劇情合併成單一份，不要分「舊」「新」段落），要求：
+- 用繁體中文、第三人稱，客觀精簡地條列或短段落，不要文學化鋪陳。
+- 保留延續劇情**必要**的資訊：發生過的關鍵事件與轉折、時間與地點的推移、${who}與「我」的關係進展、雙方的重要決定或承諾、登場的其他人事物、尚未回收的伏筆或懸念。
+- 最後另起一行「目前狀態：」，寫出最新的故事時間、地點、${who}當下的處境與對「我」的態度，以及最後一則狀態欄的好感度數值（若讀得到）。
+- 只輸出摘要本身，不要任何開場白、說明或客套。
+- 全文控制在 500 字以內。`;
+    const url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(state.model.trim())}:generateContent?key=${encodeURIComponent(state.apiKey.trim())}`;
+    const gc={temperature:0.4,maxOutputTokens:2048};
+    // 摘要是機械性整理，關掉/壓低思考，避免思考 token 吃光輸出額度導致回空
+    const ml=state.model.trim().toLowerCase();
+    if(ml.includes("2.5")&&ml.includes("flash"))gc.thinkingConfig={thinkingBudget:0};
+    else if(ml.includes("gemini-3"))gc.thinkingConfig={thinkingLevel:"low"};
+    const body={
+      contents:[{role:"user",parts:[{text:prompt}]}],
+      generationConfig:gc,
+      safetySettings:buildSafetySettings()
+    };
+    const res=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    if(!res.ok)throw new Error("HTTP "+res.status);
+    const data=await res.json();
+    const parts=data&&data.candidates&&data.candidates[0]&&data.candidates[0].content&&data.candidates[0].content.parts;
+    const outText=Array.isArray(parts)?parts.map(p=>(p&&p.text)?p.text:"").join("").trim():"";
+    if(!outText)throw new Error("摘要為空");
+    // 期間若切換了角色/對話，放棄寫回，避免污染別的對話
+    if(state.activeId!==activeIdAtStart)return;
+    state.summary={text:outText,until:foldEnd,pages:totalPages};
+    saveSummary();
+    toast(`已整理劇情摘要（前 ${foldEnd} 則已濃縮）`);
+  }catch(e){
+    // 摘要失敗不影響對話：維持原狀，下一則成功後會再自動嘗試
+  }finally{
+    summarizing=false;
+  }
 }
 
 /* ============ 渲染 ============ */
@@ -814,16 +932,18 @@ $("#thread").addEventListener("click",e=>{
 $("#btn-new").addEventListener("click",()=>{
   if(streaming){toast("生成中，請先停止");return;}
   const backup=state.messages.slice();
+  const sumBackup={...state.summary};
   state.messages=state.opening&&state.opening.trim()?[{role:"model",text:state.opening}]:[];
+  resetSummary();
   editingIndex=null;renderChat();scrollDown();saveMessages();
-  toast("已開始新對話",()=>{state.messages=backup;renderChat();saveMessages();});
+  toast("已開始新對話",()=>{state.messages=backup;state.summary=sumBackup;saveSummary();renderChat();saveMessages();});
 });
 
 
 /* ============ 備份 / 還原（整包對話＋設定） ============ */
 // 備份白名單：列在這裡的 key 會被打包進備份檔／雲端同步。
 // 排除的兩項機密：API 金鑰（在 airp_settings.apiKey 內，由 stripSecrets 拔掉）、OAuth Client ID（airp_gclient 不在白名單內）。
-const BACKUP_KEY_PREFIXES=["airp_msgs_","airp_persona_"];
+const BACKUP_KEY_PREFIXES=["airp_msgs_","airp_persona_","airp_sum_"];
 const BACKUP_KEYS=["airp_settings","airp_gauto","airp_format","airp_status","airp_persona","airp_active","airp_theme"];
 function isBackupKey(k){
   if(!k)return false;
@@ -1083,6 +1203,36 @@ $("#p-save").addEventListener("click",()=>{
   toast("已儲存我的角色");
 });
 
+/* 劇情摘要：查看／編輯目前的前情提要（自動摘要的產物，存在 airp_sum_<id>） */
+function openSummary(){
+  if(summarizing){toast("摘要整理中，請稍候再打開");return;}
+  const s=state.summary||{text:"",until:0,pages:0};
+  $("#sum-text").value=s.text||"";
+  const cover=$("#sum-cover");
+  if(cover){
+    cover.textContent=(s.until>0)
+      ?`目前摘要已濃縮前 ${s.until} 則對話；最近 ${SUMMARY_KEEP_TAIL} 則仍以原文提供給 AI。`
+      :(s.text&&s.text.trim()?"這是你手動填寫的摘要（尚未觸發自動摘要）。":"尚未產生摘要，滿 "+SUMMARY_EVERY_PAGES+" 頁後會自動生成。");
+  }
+  $("#summary").classList.add("show");
+}
+function closeSummary(){$("#summary").classList.remove("show");}
+$("#btn-summary").addEventListener("click",openSummary);
+$("#sum-cancel").addEventListener("click",closeSummary);
+$("#sum-backdrop").addEventListener("click",closeSummary);
+$("#sum-save").addEventListener("click",()=>{
+  state.summary={...state.summary,text:$("#sum-text").value.trim()}; // 只改文字，保留 until/pages 折疊進度
+  saveSummary();
+  closeSummary();
+  toast("已儲存劇情摘要");
+});
+$("#sum-clear").addEventListener("click",()=>{
+  resetSummary(); // text/until/pages 全歸零，之後恢復整本歷史送出，避免失憶
+  $("#sum-text").value="";
+  const cover=$("#sum-cover");if(cover)cover.textContent="已清空，之後會重新以完整歷史對話並在滿 "+SUMMARY_EVERY_PAGES+" 頁後重新摘要。";
+  toast("已清空劇情摘要");
+});
+
 /* 事件 / 情境：把該事件的 opening 當作一則 model 訊息接在當前對話末尾，作為新場景 */
 function openEvents(){
   if(streaming){toast("生成中，請先停止");return;}
@@ -1221,6 +1371,7 @@ function activate(id){
   const raw=store.get(msgKey(id));
   if(raw!=null){try{state.messages=JSON.parse(raw)||[];}catch{state.messages=[];}}
   else{state.messages=c.opening&&c.opening.trim()?[{role:"model",text:c.opening}]:[];}
+  loadSummary(id);
   editingIndex=null;
   hideSelection();
   renderChat();
